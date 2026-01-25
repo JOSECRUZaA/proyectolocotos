@@ -12,7 +12,6 @@ import {
     ClipboardList,
     Beer,
     LayoutGrid,
-    Bell
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -246,12 +245,7 @@ export default function MainLayout() {
                     <span className={`text-[10px] font-mono px-1 rounded ${rtStatus === 'SUBSCRIBED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         WS: {rtStatus}
                     </span>
-                    <button
-                        onClick={() => { playNotification(); showToast('🔔 Prueba de Sonido OK', 'info'); }}
-                        className="p-2 text-blue-600 bg-blue-50 rounded-full active:scale-90 transition-transform"
-                    >
-                        <Bell size={20} />
-                    </button>
+
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg active:bg-gray-200 active:scale-95 transition-all"
