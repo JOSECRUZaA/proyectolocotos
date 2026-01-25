@@ -118,38 +118,64 @@ export default function MainLayout() {
                 { event: '*', schema: 'public', table: 'order_items' },
                 async (payload) => {
                     const newRecord = payload.new as any;
-                    console.log('Global Notification Event:', payload);
-
-                    // DEBUG: Notify purely for connectivity check
-                    if (payload.eventType === 'UPDATE') {
-                        // showToast(`DEBUG: Item actualizado a ${newRecord.estado}`, 'info'); // Uncomment for verbose debug
-                    }
-
                     // Trigger only when status changes to 'listo_para_servir'
                     if (payload.eventType === 'UPDATE' && newRecord.estado === 'listo_para_servir') {
-                        // Fetch Table Number for better context
+                        // ... (existing logic)
                         const { data: orderData } = await supabase
                             .from('orders')
                             .select('numero_mesa')
                             .eq('id', newRecord.order_id)
                             .single();
-
                         const mesa = orderData?.numero_mesa || '?';
-
                         playNotification();
                         showToast(`¡Pedido Listo! Mesa ${mesa}`, 'success');
                     }
                 }
             )
-            .subscribe((status) => {
-                setRtStatus(status);
-                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                    showToast(`Error de Conexión: ${status}`, 'error');
+            .subscribe();
+
+        // 🔔 WAITER CALLS SUBSCRIPTION
+        const callChannel = supabase
+            .channel('waiter_calls_sub')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'waiter_calls' },
+                async (payload) => {
+                    const call = payload.new as any;
+                    // Check if call is relevant to ME
+                    // 1. I am a waiter
+                    // 2. It is for ME specifically OR it is for EVERYONE (null)
+                    if (profile.rol === 'garzon') {
+                        if (call.recipient_waiter_id === profile.id || !call.recipient_waiter_id) {
+
+                            // Play distinctive sound (Ding-Dong-Ding)
+                            if (audioCtxRef.current) {
+                                const ctx = audioCtxRef.current;
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.connect(gain);
+                                gain.connect(ctx.destination);
+                                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                                osc.start();
+                                osc.stop(ctx.currentTime + 0.5);
+                            } else {
+                                playNotification(); // Fallback
+                            }
+
+                            navigator.vibrate?.([500, 200, 500]);
+
+                            const sender = call.sender_role.toUpperCase();
+                            showToast(`📢 ${sender} TE SOLICITA ${call.mesa_id ? `- MESA ${call.mesa_id}` : ''}`, 'info');
+                        }
+                    }
                 }
-            });
+            )
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
+            supabase.removeChannel(callChannel);
         };
     }, [profile]);
 

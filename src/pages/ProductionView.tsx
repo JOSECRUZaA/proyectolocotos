@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
-import { CheckCircle, Clock, Utensils, Beer } from 'lucide-react';
+import { CheckCircle, Clock, Utensils, Beer, BellRing } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { WaiterCallModal } from '../components/WaiterCallModal';
 
 type OrderItem = Database['public']['Tables']['order_items']['Row'] & {
     products: Database['public']['Tables']['products']['Row'];
@@ -28,6 +29,9 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
             setProfileMap(map);
         }
     }
+
+    const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);
+    const [callContext, setCallContext] = useState<{ mesaId?: number } | null>(null);
 
     const [now, setNow] = useState(new Date());
 
@@ -108,6 +112,13 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
                 <Clock className="text-orange-500" />
                 {getTitle()}
             </h1>
+            <button
+                onClick={() => { setCallContext(null); setIsWaiterModalOpen(true); }}
+                className="ml-auto flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 font-bold text-sm transition-colors"
+            >
+                <BellRing size={18} />
+                Llamar a Garzón
+            </button>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Object.entries(groupedItems).sort((a, b) => Number(a[0]) - Number(b[0])).map(([mesa, tableItems]) => {
@@ -141,8 +152,18 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
                                     <div>
                                         <span className="text-xs font-bold opacity-80 uppercase tracking-wider">Mesa</span>
                                         <h2 className="text-3xl font-bold leading-none">{mesa}</h2>
-                                        <div className="flex items-center gap-1 mt-1 text-xs font-medium opacity-90">
+                                        <div className="flex items-center gap-2 mt-1 text-xs font-medium opacity-90">
                                             <span>👤 {garzonName.split(' ')[0]}</span>
+                                            <button
+                                                onClick={() => {
+                                                    setCallContext({ mesaId: Number(mesa) });
+                                                    setIsWaiterModalOpen(true);
+                                                }}
+                                                className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+                                                title={`Llamar mesero para Mesa ${mesa}`}
+                                            >
+                                                <BellRing size={12} />
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="text-right">
@@ -241,6 +262,14 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
                     </div>
                 )}
             </div>
-        </div>
+
+
+            <WaiterCallModal
+                isOpen={isWaiterModalOpen}
+                onClose={() => setIsWaiterModalOpen(false)}
+                mesaId={callContext?.mesaId}
+                senderRole={area || 'cocina'}
+            />
+        </div >
     );
 }

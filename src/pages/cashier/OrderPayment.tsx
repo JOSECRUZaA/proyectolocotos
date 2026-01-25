@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
-import { ArrowLeft, CreditCard, Banknote, QrCode, Receipt, Lock, ChefHat, Beer, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Banknote, QrCode, Receipt, Lock, ChefHat, Beer, CheckCircle, BellRing } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { WaiterCallModal } from '../../components/WaiterCallModal';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'] & {
@@ -23,6 +24,7 @@ export default function OrderPayment() {
     const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
     const [cashReceived, setCashReceived] = useState<string>('');
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);
 
     useEffect(() => {
         if (profile) {
@@ -218,6 +220,14 @@ export default function OrderPayment() {
                             </div>
                         </div>
                     </div>
+                    <button
+                        onClick={() => setIsWaiterModalOpen(true)}
+                        className="ml-4 p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex flex-col items-center gap-1"
+                        title="Llamar Garzón"
+                    >
+                        <BellRing size={20} />
+                        <span className="text-[10px] font-bold uppercase">Llamar</span>
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
@@ -444,6 +454,13 @@ export default function OrderPayment() {
                     </div>
                 </div>
             )}
+            {/* WAITER CALL MODAL */}
+            <WaiterCallModal
+                isOpen={isWaiterModalOpen}
+                onClose={() => setIsWaiterModalOpen(false)}
+                mesaId={tableId ? parseInt(tableId) : undefined}
+                senderRole="caja"
+            />
         </div>
     );
 }
