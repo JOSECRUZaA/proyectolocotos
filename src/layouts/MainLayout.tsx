@@ -23,7 +23,7 @@ export default function MainLayout() {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
     const [cashStatus, setCashStatus] = React.useState<'abierta' | 'cerrada'>('cerrada');
-    const [rtStatus, setRtStatus] = React.useState('INIT');
+    const [rtStatus] = React.useState('INIT');
 
     // Global Notification State
     const { toast, showToast, hideToast } = useToast();

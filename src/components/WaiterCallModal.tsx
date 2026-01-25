@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useOnlineUsers } from '../../contexts/OnlineUsersContext';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useOnlineUsers } from '../contexts/OnlineUsersContext';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { X, User, BellRing } from 'lucide-react';
 import { useToast } from './ui/Toast';
 

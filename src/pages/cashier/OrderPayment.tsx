@@ -222,11 +222,11 @@ export default function OrderPayment() {
                     </div>
                     <button
                         onClick={() => setIsWaiterModalOpen(true)}
-                        className="ml-4 p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all flex flex-col items-center gap-1"
-                        title="Llamar Garzón"
+                        className="ml-4 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100 rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
+                        title="Llamar Garzón a esta mesa"
                     >
-                        <BellRing size={20} />
-                        <span className="text-[10px] font-bold uppercase">Llamar</span>
+                        <BellRing size={20} className="fill-indigo-200" />
+                        <span className="text-xs font-bold uppercase tracking-wide">Llamar Mesero</span>
                     </button>
                 </div>
 

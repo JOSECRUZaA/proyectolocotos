@@ -1,0 +1,6 @@
+src/components/WaiterCallModal.tsx(2,32): error TS2307: Cannot find module '../../contexts/OnlineUsersContext' or its corresponding type declarations.
+src/components/WaiterCallModal.tsx(3,26): error TS2307: Cannot find module '../../lib/supabase' or its corresponding type declarations.
+src/components/WaiterCallModal.tsx(4,25): error TS2307: Cannot find module '../../contexts/AuthContext' or its corresponding type declarations.
+src/components/WaiterCallModal.tsx(22,40): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/components/WaiterCallModal.tsx(80,42): error TS7006: Parameter 'waiter' implicitly has an 'any' type.
+src/layouts/MainLayout.tsx(26,22): error TS6133: 'setRtStatus' is declared but its value is never read.
