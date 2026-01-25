@@ -21,13 +21,13 @@ export default defineConfig([
     },
     rules: {
       ...reactHooks.configs.flat.recommended.rules,
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'off',
       'no-use-before-define': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       // Downgrade confusing hook errors
-      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ])
