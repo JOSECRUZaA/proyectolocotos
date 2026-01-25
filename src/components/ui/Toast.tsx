@@ -43,15 +43,17 @@ export function Toast({ message, type = 'success', isVisible, onClose, duration 
     };
 
     return (
-        <div className={`fixed top-4 right-4 z-[9999] transition-all duration-300 transform ${show ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg ${styles[type]} min-w-[300px]`}>
-                <div className="flex-shrink-0">
-                    {icons[type]}
+        <div className="fixed top-0 left-0 w-full z-[9999] flex justify-center pt-4 pointer-events-none">
+            <div className={`pointer-events-auto transition-all duration-300 transform ${show ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg ${styles[type]} min-w-[300px]`}>
+                    <div className="flex-shrink-0">
+                        {icons[type]}
+                    </div>
+                    <p className="flex-1 font-medium text-sm">{message}</p>
+                    <button onClick={() => setShow(false)} className="opacity-50 hover:opacity-100 transition-opacity">
+                        <X size={18} />
+                    </button>
                 </div>
-                <p className="flex-1 font-medium text-sm">{message}</p>
-                <button onClick={() => setShow(false)} className="opacity-50 hover:opacity-100 transition-opacity">
-                    <X size={18} />
-                </button>
             </div>
         </div>
     );
