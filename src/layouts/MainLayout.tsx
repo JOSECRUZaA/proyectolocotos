@@ -59,18 +59,38 @@ export default function MainLayout() {
             osc.connect(gain);
             gain.connect(ctx.destination);
 
+            // Tono 1: Ding (Alto)
+            // 'osc' and 'gain' are already created above
+
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(600, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
-            osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.5);
+            osc.frequency.setValueAtTime(660, ctx.currentTime); // Mi (E5)
 
-            gain.gain.setValueAtTime(0.5, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.05); // Attack fast
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); // Decay
 
-            osc.start();
-            osc.stop(ctx.currentTime + 1.5);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.6);
 
-            if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
+            // Tono 2: Dong (Bajo) - Suena 0.4s después
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(550, ctx.currentTime + 0.4); // Do# (C#5) aprox, intervalo melódico
+
+            gain2.gain.setValueAtTime(0, ctx.currentTime + 0.4);
+            gain2.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.45);
+            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+
+            osc2.start(ctx.currentTime + 0.4);
+            osc2.stop(ctx.currentTime + 1.5);
+
+            // Vibración
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         } catch (error) {
             console.error('Audio Error:', error);
         }
