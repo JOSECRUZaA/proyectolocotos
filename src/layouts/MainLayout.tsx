@@ -23,6 +23,7 @@ export default function MainLayout() {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
     const [cashStatus, setCashStatus] = React.useState<'abierta' | 'cerrada'>('cerrada');
+    const [rtStatus, setRtStatus] = React.useState('INIT');
 
     // Global Notification State
     const { toast, showToast, hideToast } = useToast();
@@ -94,11 +95,18 @@ export default function MainLayout() {
             .channel('global_waiter_notifications')
             .on(
                 'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'order_items' },
+                { event: '*', schema: 'public', table: 'order_items' },
                 async (payload) => {
                     const newRecord = payload.new as any;
+                    console.log('Global Notification Event:', payload);
+
+                    // DEBUG: Notify purely for connectivity check
+                    if (payload.eventType === 'UPDATE') {
+                        // showToast(`DEBUG: Item actualizado a ${newRecord.estado}`, 'info'); // Uncomment for verbose debug
+                    }
+
                     // Trigger only when status changes to 'listo_para_servir'
-                    if (newRecord.estado === 'listo_para_servir') {
+                    if (payload.eventType === 'UPDATE' && newRecord.estado === 'listo_para_servir') {
                         // Fetch Table Number for better context
                         const { data: orderData } = await supabase
                             .from('orders')
@@ -113,7 +121,12 @@ export default function MainLayout() {
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                setRtStatus(status);
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    showToast(`Error de Conexión: ${status}`, 'error');
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
@@ -176,6 +189,9 @@ export default function MainLayout() {
                     <span className="font-bold text-gray-800">Wendy's App</span>
                 </div>
                 <div className="flex items-center gap-3">
+                    <span className={`text-[10px] font-mono px-1 rounded ${rtStatus === 'SUBSCRIBED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        WS: {rtStatus}
+                    </span>
                     <button
                         onClick={() => { playNotification(); showToast('🔔 Prueba de Sonido OK', 'info'); }}
                         className="p-2 text-blue-600 bg-blue-50 rounded-full active:scale-90 transition-transform"
