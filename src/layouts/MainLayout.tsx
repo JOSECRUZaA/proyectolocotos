@@ -242,9 +242,7 @@ export default function MainLayout() {
                     <span className="font-bold text-gray-800">Wendy's App</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-mono px-1 rounded ${rtStatus === 'SUBSCRIBED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        WS: {rtStatus}
-                    </span>
+
 
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
