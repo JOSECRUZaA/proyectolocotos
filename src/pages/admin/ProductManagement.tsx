@@ -117,15 +117,68 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Link de Imagen</label>
-                        <input
-                            type="text" // URL input
-                            placeholder="https://ejemplo.com/imagen.jpg"
-                            className="w-full border rounded-lg p-2"
-                            value={formData.foto_url || ''}
-                            onChange={e => setFormData({ ...formData, foto_url: e.target.value })}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Pega aquí el enlace de la imagen del producto.</p>
+                        <label className="block text-sm font-medium mb-1">Imagen del Producto</label>
+
+                        {/* Image Preview */}
+                        {formData.foto_url && (
+                            <div className="mb-3 relative group w-fit">
+                                <img src={formData.foto_url} alt="Vista previa" className="w-24 h-24 object-cover rounded-lg border" />
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, foto_url: '' })}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* File Input */}
+                        <div className="flex gap-2 items-center">
+                            <label className="flex-1 cursor-pointer">
+                                <span className="sr-only">Elegir archivo</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="block w-full text-sm text-gray-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-full file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-red-50 file:text-red-700
+                                    hover:file:bg-red-100"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+
+                                        try {
+                                            setLoading(true);
+                                            // 1. Upload to Supabase Storage
+                                            const fileExt = file.name.split('.').pop();
+                                            const fileName = `${Math.random()}.${fileExt}`;
+                                            const filePath = `${fileName}`;
+
+                                            const { error: uploadError } = await supabase.storage
+                                                .from('products')
+                                                .upload(filePath, file);
+
+                                            if (uploadError) throw uploadError;
+
+                                            // 2. Get Public URL
+                                            const { data } = supabase.storage
+                                                .from('products')
+                                                .getPublicUrl(filePath);
+
+                                            setFormData({ ...formData, foto_url: data.publicUrl });
+                                        } catch (error: any) {
+                                            alert('Error al subir imagen: ' + error.message);
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }}
+                                />
+                            </label>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Sube una imagen (JPG, PNG) desde tu dispositivo.</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
