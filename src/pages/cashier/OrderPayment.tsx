@@ -408,24 +408,39 @@ export default function OrderPayment() {
                 </div>
             </div>
 
-            {/* SUCCESS MODAL */}
+            {/* PREMIUM SUCCESS MODAL */}
             {showSuccessModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
-                    <div className="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full text-center transform transition-all scale-100 animate-in zoom-in-95 duration-300 border border-gray-100 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-emerald-500"></div>
-                        <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-green-100 shadow-xl animate-bounce-slow ring-8 ring-green-50">
-                            <CheckCircle size={48} className="text-green-600" strokeWidth={3} />
+                <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300 p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center transform transition-all scale-100 animate-in zoom-in-95 duration-500 relative overflow-hidden group">
+
+                        {/* Decorative Background Pattern */}
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                            style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, #000 1px, transparent 0)', backgroundSize: '24px 24px' }}>
                         </div>
-                        <h2 className="text-4xl font-black text-gray-800 mb-2 tracking-tight">¡Pago Exitoso!</h2>
-                        <p className="text-gray-500 mb-10 text-lg leading-relaxed font-medium">
-                            La mesa ha sido liberada correctamente.
-                        </p>
-                        <button
-                            onClick={() => navigate('/mesas')}
-                            className="w-full bg-gray-900 text-white py-5 rounded-2xl font-bold text-xl hover:bg-black transition-all hover:shadow-lg transform hover:-translate-y-1"
-                        >
-                            Volver al Mapa
-                        </button>
+
+                        {/* Success Gradient Header */}
+                        <div className="bg-gradient-to-br from-emerald-400 to-green-600 h-32 flex items-center justify-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-white/10" style={{ backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)', backgroundSize: '1rem 1rem' }}></div>
+
+                            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg transform translate-y-8 animate-bounce-slow z-10">
+                                <CheckCircle size={40} className="text-emerald-500" strokeWidth={4} />
+                            </div>
+                        </div>
+
+                        <div className="pt-12 pb-8 px-8">
+                            <h2 className="text-3xl font-black text-gray-800 mb-2 tracking-tight">¡Pago Exitoso!</h2>
+                            <p className="text-gray-500 mb-8 font-medium leading-relaxed">
+                                La transacción fue completada y la mesa ha sido liberada.
+                            </p>
+
+                            <button
+                                onClick={() => navigate('/mesas')}
+                                className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-xl font-bold text-lg shadow-xl shadow-gray-200 hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                <ArrowLeft size={20} />
+                                Volver al Mapa
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
