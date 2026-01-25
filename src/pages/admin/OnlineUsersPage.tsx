@@ -1,12 +1,16 @@
-/* eslint-disable */
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useOnlineUsers } from '../../contexts/OnlineUsersContext';
-import { User, Shield, ChefHat, Beer, Laptop, Clock, UtensilsCrossed } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../components/ui/Toast';
+import { User, Shield, ChefHat, Beer, Laptop, Clock, UtensilsCrossed, BellRing } from 'lucide-react';
 
 export default function OnlineUsersPage() {
     const { onlineUsers } = useOnlineUsers();
+    const { profile } = useAuth();
+    const { showToast } = useToast();
     const [waiterStats, setWaiterStats] = useState<Record<string, number>>({});
+    const [callingUser, setCallingUser] = useState<string | null>(null);
 
     useEffect(() => {
         fetchWaiterStats();
@@ -43,6 +47,32 @@ export default function OnlineUsersPage() {
             setWaiterStats(stats);
         }
     }
+
+    const handleCallUser = async (targetUserId: string, targetName: string) => {
+        if (!profile) return;
+        setCallingUser(targetUserId);
+
+        try {
+            const { error } = await supabase
+                .from('waiter_calls')
+                .insert({
+                    mesa_id: null, // Direct call, no table
+                    sender_role: profile.rol,
+                    sender_user_id: profile.id, // I am calling
+                    recipient_waiter_id: targetUserId, // You are receiving
+                    message: `📢 LLAMADA DIRECTA DE ${profile.nombre_completo.toUpperCase()} (${profile.rol.toUpperCase()})`,
+                    status: 'pending'
+                });
+
+            if (error) throw error;
+            showToast(`🔔 Llamando a ${targetName}...`, 'success');
+        } catch (error: any) {
+            console.error('Error calling user:', error);
+            showToast('Error al llamar usuario', 'error');
+        } finally {
+            setTimeout(() => setCallingUser(null), 2000); // Reset loading state
+        }
+    };
 
     const getRoleIcon = (rol: string) => {
         switch (rol) {
@@ -100,25 +130,43 @@ export default function OnlineUsersPage() {
                         <div className="space-y-3">
                             {users.map(u => (
                                 <div key={u.id} className={`relative flex items-center gap-3 p-2 rounded-lg border ${getRoleColor(u.rol)}`}>
-                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center font-bold text-sm shadow-sm uppercase overflow-hidden text-gray-700 border-2 border-opacity-10">
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center font-bold text-sm shadow-sm uppercase overflow-hidden text-gray-700 border-2 border-opacity-10 shrink-0">
                                         {u.nombre_completo.charAt(0)}
                                     </div>
-                                    <div className="overflow-hidden">
+                                    <div className="overflow-hidden flex-1 min-w-0">
                                         <p className="font-bold text-sm truncate">{u.nombre_completo}</p>
-                                        <p className="text-[10px] flex items-center gap-1 opacity-75 leading-tight">
-                                            <Clock size={10} />
-                                            {new Date(u.online_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <p className="text-[10px] flex items-center gap-1 opacity-75 leading-tight whitespace-nowrap">
+                                                <Clock size={10} />
+                                                {new Date(u.online_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
 
-                                        {/* METRIC: Active Tables for Waiters */}
-                                        {u.rol === 'garzon' && (
-                                            <div className="mt-1 flex items-center gap-1 bg-white/50 px-1.5 py-0.5 rounded text-[10px] font-bold w-fit text-pink-700">
-                                                <UtensilsCrossed size={10} />
-                                                {waiterStats[u.id] || 0} Mesas Activas
-                                            </div>
-                                        )}
+                                            {/* METRIC: Active Tables for Waiters */}
+                                            {u.rol === 'garzon' && (
+                                                <div className="flex items-center gap-1 bg-white/50 px-1.5 py-0.5 rounded text-[10px] font-bold text-pink-700 whitespace-nowrap">
+                                                    <UtensilsCrossed size={10} />
+                                                    {waiterStats[u.id] || 0}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="ml-auto w-2 h-2 rounded-full bg-green-500 shadow-lg shadow-green-200 animate-pulse"></div>
+
+                                    {/* Action Buttons */}
+                                    <div className="ml-auto flex items-center gap-2">
+                                        {u.id !== profile?.id && (
+                                            <button
+                                                onClick={() => handleCallUser(u.id, u.nombre_completo)}
+                                                disabled={callingUser === u.id}
+                                                className={`p-2 rounded-full transition-all shadow-sm ${callingUser === u.id
+                                                    ? 'bg-red-100 text-red-400 cursor-wait animate-pulse'
+                                                    : 'bg-white hover:bg-red-500 hover:text-white text-gray-400'}`}
+                                                title={`Llamar a ${u.nombre_completo}`}
+                                            >
+                                                <BellRing size={16} className={callingUser === u.id ? 'animate-bounce' : ''} />
+                                            </button>
+                                        )}
+                                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-lg shadow-green-200 animate-pulse shrink-0"></div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
