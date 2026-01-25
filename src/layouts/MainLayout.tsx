@@ -23,7 +23,7 @@ export default function MainLayout() {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
     const [cashStatus, setCashStatus] = React.useState<'abierta' | 'cerrada'>('cerrada');
-    const [rtStatus] = React.useState('INIT');
+    const [rtStatus, setRtStatus] = React.useState('INIT');
 
     // Global Notification State
     const { toast, showToast, hideToast } = useToast();
@@ -132,7 +132,9 @@ export default function MainLayout() {
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED' || status === 'CLOSED') setRtStatus(status);
+            });
 
         // 🔔 WAITER CALLS SUBSCRIPTION
         const callChannel = supabase
@@ -171,7 +173,9 @@ export default function MainLayout() {
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') setRtStatus(status);
+            });
 
         return () => {
             supabase.removeChannel(channel);
