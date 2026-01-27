@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 type Product = Database['public']['Tables']['products']['Row'];
 
 interface CartItem {
+    internalId: string;
     product: Product;
     quantity: number;
     notes: string;
@@ -26,7 +27,7 @@ export default function OrderCreation() {
     const [tableStatus, setTableStatus] = useState<TableStatus | null>(null);
     const [requestingBill, setRequestingBill] = useState(false);
 
-    const [editingNote, setEditingNote] = useState<number | null>(null);
+    const [editingNote, setEditingNote] = useState<string | null>(null);
     const [noteText, setNoteText] = useState('');
 
     // Mobile Cart State
@@ -45,15 +46,42 @@ export default function OrderCreation() {
     };
 
     const openNoteModal = (item: CartItem) => {
-        setEditingNote(item.product.id);
+        setEditingNote(item.internalId);
         setNoteText(item.notes || '');
     };
 
     const saveNote = () => {
-        if (editingNote === null) return;
-        setCart(prev => prev.map(item =>
-            item.product.id === editingNote ? { ...item, notes: noteText } : item
-        ));
+        if (!editingNote) return;
+
+        setCart(prev => {
+            const currentItem = prev.find(i => i.internalId === editingNote);
+            if (!currentItem) return prev;
+
+            const updatedNote = noteText.trim();
+
+            // 1. Check if there's ANOTHER item with the same product AND the SAME new note
+            const duplicateItem = prev.find(i =>
+                i.internalId !== editingNote &&
+                i.product.id === currentItem.product.id &&
+                (i.notes || '').trim() === updatedNote
+            );
+
+            if (duplicateItem) {
+                // MERGE: Add current qty to duplicate, remove current
+                return prev.map(i => {
+                    if (i.internalId === duplicateItem.internalId) {
+                        return { ...i, quantity: i.quantity + currentItem.quantity };
+                    }
+                    return i;
+                }).filter(i => i.internalId !== editingNote);
+            }
+
+            // 2. No duplicate, just update the note
+            return prev.map(item =>
+                item.internalId === editingNote ? { ...item, notes: updatedNote } : item
+            );
+        });
+
         setEditingNote(null);
         setNoteText('');
     };
@@ -113,25 +141,33 @@ export default function OrderCreation() {
 
     const addToCart = (product: Product) => {
         setCart(prev => {
-            const existing = prev.find(item => item.product.id === product.id);
+            // Check if there is an item with this product AND empty notes
+            const existing = prev.find(item => item.product.id === product.id && (!item.notes || item.notes === ''));
+
             if (existing) {
                 return prev.map(item =>
-                    item.product.id === product.id
+                    item.internalId === existing.internalId
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
                 );
             }
-            return [...prev, { product, quantity: 1, notes: '' }];
+            // Create new item with unique internalId
+            return [...prev, {
+                internalId: crypto.randomUUID(),
+                product,
+                quantity: 1,
+                notes: ''
+            }];
         });
     };
 
-    const removeFromCart = (productId: number) => {
-        setCart(prev => prev.filter(item => item.product.id !== productId));
+    const removeFromCart = (internalId: string) => {
+        setCart(prev => prev.filter(item => item.internalId !== internalId));
     };
 
-    const updateQuantity = (productId: number, delta: number) => {
+    const updateQuantity = (internalId: string, delta: number) => {
         setCart(prev => prev.map(item => {
-            if (item.product.id === productId) {
+            if (item.internalId === internalId) {
                 const newQty = Math.max(1, item.quantity + delta);
                 return { ...item, quantity: newQty };
             }
@@ -247,7 +283,7 @@ export default function OrderCreation() {
     return (
         <div className="flex flex-col lg:flex-row h-[calc(100vh-theme(spacing.20))] gap-6 relative">
             {/* NOTES MODAL OVERLAY */}
-            {editingNote !== null && (
+            {editingNote && (
                 <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
@@ -265,7 +301,7 @@ export default function OrderCreation() {
                                 <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Etiquetas Rápidas</label>
                                 <div className="flex flex-wrap gap-2">
                                     {(() => {
-                                        const currentProduct = cart.find(item => item.product.id === editingNote)?.product;
+                                        const currentProduct = cart.find(item => item.internalId === editingNote)?.product;
                                         const areaTags = currentProduct?.area === 'cocina' ? TAG_SETS.kitchen : TAG_SETS.bar;
                                         const relevantTags = [...(areaTags || []), ...TAG_SETS.global];
 
@@ -520,7 +556,7 @@ export default function OrderCreation() {
                             </div>
                         ) : (
                             cart.map(item => (
-                                <div key={item.product.id} className="flex flex-col gap-2 border-b pb-4 last:border-0 group">
+                                <div key={item.internalId} className="flex flex-col gap-2 border-b pb-4 last:border-0 group">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h4 className="font-medium text-gray-900 leading-tight">{item.product.nombre}</h4>
@@ -530,7 +566,7 @@ export default function OrderCreation() {
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => removeFromCart(item.product.id)}
+                                            onClick={() => removeFromCart(item.internalId)}
                                             className="text-gray-300 hover:text-red-500 p-1"
                                         >
                                             <Trash2 size={18} />
@@ -540,14 +576,14 @@ export default function OrderCreation() {
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                             <button
-                                                onClick={() => updateQuantity(item.product.id, -1)}
+                                                onClick={() => updateQuantity(item.internalId, -1)}
                                                 className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:text-red-600 font-bold active:bg-gray-50"
                                             >
                                                 -
                                             </button>
                                             <span className="font-bold w-10 text-center text-gray-800">{item.quantity}</span>
                                             <button
-                                                onClick={() => updateQuantity(item.product.id, 1)}
+                                                onClick={() => updateQuantity(item.internalId, 1)}
                                                 className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm hover:text-green-600 font-bold active:bg-gray-50"
                                             >
                                                 +
