@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, User, Lock } from 'lucide-react';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -92,55 +92,76 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+        <div
+            className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden"
+            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1549213821-4708d624e1d1?q=80&w=1920&auto=format&fit=crop')" }}
+        >
+            {/* Dark Overlay for Text Readability */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
+
+            <div className="bg-white/95 backdrop-blur-md p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/20 transform transition-all relative z-10">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4 text-white">
-                        <ChefHat size={32} />
+                    <div className="w-20 h-20 bg-gradient-to-tr from-red-600 to-orange-500 rounded-2xl rotate-3 flex items-center justify-center mb-6 text-white shadow-lg shadow-red-500/30 hover:rotate-6 transition-transform duration-300">
+                        <ChefHat size={40} className="-rotate-3" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Wendy's Restaurante</h1>
-                    <p className="text-gray-500">Inicia sesión para continuar</p>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight text-center">Wendy's Restaurante</h1>
+                    <p className="text-gray-500 mt-2 font-medium text-center">Bienvenido, inicia sesión</p>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm font-medium">
+                    <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-6 text-sm font-medium flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="bg-red-100 p-1 rounded-full"><span className="block w-2 h-2 bg-red-500 rounded-full"></span></div>
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all uppercase"
-                            placeholder="Ej. JCRUZ"
-                            required
-                        />
+                <form onSubmit={handleLogin} className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700 ml-1">Usuario</label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-red-500 transition-colors">
+                                <User size={20} />
+                            </div>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all font-bold text-gray-800 uppercase placeholder:normal-case placeholder:font-normal placeholder:text-gray-400"
+                                placeholder="Ej. MDORADO"
+                                required
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                            placeholder="••••••••"
-                            required
-                        />
+                    <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700 ml-1">Contraseña</label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-red-500 transition-colors">
+                                <Lock size={20} />
+                            </div>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all font-medium text-gray-800"
+                                placeholder="••••••••"
+                                required
+                            />
+                        </div>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-red-600 text-white font-semibold py-2.5 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                        className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-4 rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:shadow-none mt-4 text-lg tracking-wide"
                     >
-                        {loading ? 'Entrando...' : 'Ingresar'}
+                        {loading ? 'Verificando...' : 'Ingresar al Sistema'}
                     </button>
                 </form>
+            </div>
+
+            <div className="absolute bottom-4 text-white/40 text-xs font-medium">
+                © {new Date().getFullYear()} Wendy's Restaurante System
             </div>
         </div>
     );
