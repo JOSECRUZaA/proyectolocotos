@@ -406,12 +406,6 @@ export default function ProductManagement() {
                     >
                         <RefreshCw size={20} /> Iniciar Día
                     </button>
-                    <button
-                        onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-                        className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 font-bold shadow-md shadow-red-200"
-                    >
-                        <Plus size={20} /> Nuevo Producto
-                    </button>
                     {profile?.rol !== 'cajero' && (
                         <button
                             onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}

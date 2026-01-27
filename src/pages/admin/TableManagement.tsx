@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Trash2, Plus, LayoutGrid, Users } from 'lucide-react';
+import { useToast, Toast } from '../../components/ui/Toast';
 
 interface Table {
     id: number;
@@ -13,6 +14,7 @@ export default function TableManagement() {
     const [tables, setTables] = useState<Table[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const { toast, showToast, hideToast } = useToast();
 
     // Form State
     const [formData, setFormData] = useState({
@@ -35,6 +37,7 @@ export default function TableManagement() {
             setTables(data || []);
         } catch (error) {
             console.error('Error loading tables:', error);
+            showToast('Error al cargar mesas', 'error');
         } finally {
             setLoading(false);
         }
@@ -56,15 +59,15 @@ export default function TableManagement() {
             setShowModal(false);
             setFormData({ numero_mesa: '', capacidad: '' });
             fetchTables();
-            alert('Mesa creada exitosamente');
+            showToast('Mesa creada exitosamente', 'success');
         } catch (error: any) {
-            alert('Error al crear mesa: ' + error.message);
+            showToast('Error al crear mesa: ' + error.message, 'error');
         }
     };
 
     const handleDelete = async (id: number, estado: string) => {
         if (estado !== 'libre') {
-            alert('No puedes eliminar una mesa que está OCUPADA. Primero ciérrala o cóbrala.');
+            showToast('No puedes eliminar una mesa OCUPADA. Ciérrala o cóbrala primero.', 'error');
             return;
         }
 
@@ -78,8 +81,9 @@ export default function TableManagement() {
 
             if (error) throw error;
             fetchTables();
+            showToast('Mesa eliminada correctamente', 'success');
         } catch (error: any) {
-            alert('Error al eliminar: ' + error.message);
+            showToast('Error al eliminar: ' + error.message, 'error');
         }
     };
 
@@ -185,6 +189,13 @@ export default function TableManagement() {
                     </div>
                 </div>
             )}
+
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={hideToast}
+            />
         </div>
     );
 }
