@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
-import { Banknote, TrendingUp, Calendar, Eye, X, ChefHat, Beer, Trash2, Printer } from 'lucide-react';
+import { Banknote, TrendingUp, Calendar, Eye, X, ChefHat, Beer, Trash2, Printer, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -138,17 +138,21 @@ export default function DailySales() {
         setLoadingDetails(false);
     }
 
-    async function handleCancelOrder(order: Order) {
-        if (!window.confirm(`⚠️ ¿Estás seguro de CANCELAR la Orden #${order.id}?\n\nEsta acción es irreversible y liberará la Mesa ${order.numero_mesa}.`)) {
-            return;
-        }
+    const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+
+    function handleCancelOrder(order: Order) {
+        setOrderToCancel(order);
+    }
+
+    async function cancelOrderConfirmed() {
+        if (!orderToCancel) return;
 
         try {
             // 1. Mark Order as Cancelled
             const { error: orderError } = await supabase
                 .from('orders')
                 .update({ estado: 'cancelado' })
-                .eq('id', order.id);
+                .eq('id', orderToCancel.id);
 
             if (orderError) throw orderError;
 
@@ -159,11 +163,12 @@ export default function DailySales() {
                     estado: 'libre',
                     orden_actual_id: null
                 })
-                .eq('numero_mesa', order.numero_mesa);
+                .eq('numero_mesa', orderToCancel.numero_mesa);
 
             if (tableError) throw tableError;
 
-            alert('✅ Orden cancelada correctamente.');
+            // alert('✅ Orden cancelada correctamente.'); // Removed alert for better UX
+            setOrderToCancel(null);
             fetchAllData(); // Refresh ALL lists
 
         } catch (error: any) {
@@ -577,6 +582,41 @@ export default function DailySales() {
                                 <p className="text-2xl font-bold text-gray-900">
                                     Bs {orderItems.reduce((sum, i) => sum + (i.cantidad * i.precio_unitario), 0).toFixed(2)}
                                 </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Confirmation Modal */}
+            {orderToCancel && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl scale-100 transform transition-all">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="bg-red-100 p-4 rounded-full text-red-600 animate-pulse">
+                                <AlertTriangle size={48} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">¿Cancelar Orden #{orderToCancel.daily_order_number || orderToCancel.id}?</h3>
+                                <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                                    Esta acción es <strong>irreversible</strong> y liberará la <span className="font-bold text-gray-800">Mesa {orderToCancel.numero_mesa}</span>.
+                                    <br />
+                                    El pedido pasará a estado "Cancelado".
+                                </p>
+                            </div>
+                            <div className="flex gap-3 w-full pt-2">
+                                <button
+                                    onClick={() => setOrderToCancel(null)}
+                                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+                                >
+                                    No, volver
+                                </button>
+                                <button
+                                    onClick={cancelOrderConfirmed}
+                                    className="flex-1 px-4 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all hover:scale-[1.02]"
+                                >
+                                    Sí, cancelar
+                                </button>
                             </div>
                         </div>
                     </div>
