@@ -23,10 +23,10 @@ ALTER FUNCTION public.assign_daily_order_number() SET search_path = public;
 ALTER FUNCTION public.is_admin() SET search_path = public;
 ALTER FUNCTION public.delete_user_completely(uuid) SET search_path = public;
 ALTER FUNCTION public.admin_reset_password(uuid, text) SET search_path = public;
-ALTER FUNCTION public.liberar_mesa(integer) SET search_path = public;
-ALTER FUNCTION public.devolver_stock(jsonb) SET search_path = public;
-ALTER FUNCTION public.descontar_stock(jsonb) SET search_path = public;
-ALTER FUNCTION public.bloquear_mesa(integer) SET search_path = public;
+ALTER FUNCTION public.liberar_mesa() SET search_path = public;
+ALTER FUNCTION public.devolver_stock() SET search_path = public;
+ALTER FUNCTION public.descontar_stock() SET search_path = public;
+ALTER FUNCTION public.bloquear_mesa() SET search_path = public;
 ALTER FUNCTION public.handle_new_user() SET search_path = public;
 
 -- 3. FIX: RLS Policy Always True (Table: waiter_calls)

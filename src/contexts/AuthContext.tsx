@@ -114,17 +114,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Initial Session Check (Async)
-        // REMOVED manual getSession() check as it causes race conditions with onAuthStateChange.
-        // We rely purely on the subscription event 'INITIAL_SESSION' to handle startup.
-        /*
+        // CRITICAL FOR PWA: Sometimes onAuthStateChange doesn't fire 'INITIAL_SESSION' fast enough
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (mounted && !session) {
-                // If no session found immediately, stop loading
-                console.log('No initial session found.');
-                setLoading(false);
+            if (mounted) {
+                if (!session) {
+                    // If no session found immediately, stop loading
+                    console.log('No initial session found (manual check).');
+                    setLoading(false);
+                } else {
+                    // Session found, let the onAuthStateChange handle the profile fetch
+                    // But just in case, update local state
+                    setSession(session);
+                    setUser(session.user);
+                }
             }
         });
-        */
 
         return () => {
             mounted = false;

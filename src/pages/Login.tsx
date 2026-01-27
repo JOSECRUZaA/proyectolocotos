@@ -109,8 +109,9 @@ export default function Login() {
                     throw new Error('Este usuario ha sido desactivado. Contacte al administrador.');
                 }
 
-                // Success - Navigation handled by useEffect or navigate
-                navigate('/');
+                // Success - Navigation handled by useEffect watching 'user' state
+                // We do NOT navigate here manually to avoid race conditions
+                console.log('Login successful, waiting for user state update...');
             }
         } catch (err: any) {
             console.error('Login error:', err);

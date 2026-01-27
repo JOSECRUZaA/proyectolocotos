@@ -29,8 +29,14 @@ export default function MainLayout() {
     const audioCtxRef = React.useRef<AudioContext | null>(null);
 
     const handleSignOut = async () => {
-        await signOut();
-        navigate('/login');
+        try {
+            await signOut();
+        } catch (error) {
+            console.error('Error signing out:', error);
+        } finally {
+            // Force navigation even if signOut fails
+            navigate('/login');
+        }
     };
 
     // --- AUDIO LOGIC ---
