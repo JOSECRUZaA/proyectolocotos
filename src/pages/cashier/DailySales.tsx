@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
-import { Banknote, TrendingUp, Calendar, Eye, X, ChefHat, Beer, Trash2 } from 'lucide-react';
+import { Banknote, TrendingUp, Calendar, Eye, X, ChefHat, Beer, Trash2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -426,12 +426,87 @@ export default function DailySales() {
                                     </p>
                                 )}
                             </div>
-                            <button
-                                onClick={() => setSelectedOrder(null)}
-                                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-full"
-                            >
-                                <X size={20} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        if (!selectedOrderData) return;
+                                        const printWindow = window.open('', '_blank');
+                                        if (!printWindow) return;
+
+                                        const waiterName = profileMap[selectedOrderData.garzon_id || ''] || 'Desconocido';
+                                        const date = new Date(selectedOrderData.created_at).toLocaleString('es-BO');
+
+                                        const htmlContent = `
+                                            <html>
+                                            <head>
+                                                <title>Ticket #${selectedOrderData.daily_order_number || '-'}</title>
+                                                <style>
+                                                    body { font-family: 'Courier New', monospace; padding: 20px; max-width: 350px; margin: 0 auto; color: #000; }
+                                                    .header { text-align: center; margin-bottom: 15px; }
+                                                    .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                                                    .subtitle { font-size: 12px; text-transform: uppercase; }
+                                                    .info { font-size: 12px; margin-bottom: 15px; line-height: 1.4; }
+                                                    .divider { border-top: 1px dashed #000; margin: 10px 0; }
+                                                    .item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+                                                    .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 15px; }
+                                                    .footer { text-align: center; margin-top: 20px; font-size: 10px; }
+                                                </style>
+                                            </head>
+                                            <body>
+                                                <div class="header">
+                                                    <div class="title">WENDY RESTAURANTE</div>
+                                                    <div class="subtitle">Detalle de Consumo</div>
+                                                </div>
+                                                
+                                                <div class="info">
+                                                    <div><strong>Orden:</strong> #${selectedOrderData.daily_order_number || '-'}</div>
+                                                    <div><strong>Fecha:</strong> ${date}</div>
+                                                    <div><strong>Mesa:</strong> ${selectedOrderData.numero_mesa}</div>
+                                                    <div><strong>Atendido por:</strong> ${waiterName}</div>
+                                                </div>
+
+                                                <div class="divider"></div>
+
+                                                ${orderItems.map(item => `
+                                                    <div class="item">
+                                                        <span>${item.cantidad} x ${item.products.nombre}</span>
+                                                        <span>Bs ${(item.cantidad * item.precio_unitario).toFixed(2)}</span>
+                                                    </div>
+                                                `).join('')}
+
+                                                <div class="divider"></div>
+
+                                                <div class="total-row">
+                                                    <span>TOTAL:</span>
+                                                    <span>Bs ${selectedOrderData.total.toFixed(2)}</span>
+                                                </div>
+
+                                                <div class="footer">
+                                                    Gracias por su preferencia
+                                                </div>
+
+                                                <script>
+                                                    window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); }
+                                                </script>
+                                            </body>
+                                            </html>
+                                        `;
+
+                                        printWindow.document.write(htmlContent);
+                                        printWindow.document.close();
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-full transition-colors mr-2"
+                                    title="Imprimir Ticket"
+                                >
+                                    <Printer size={20} />
+                                </button>
+                                <button
+                                    onClick={() => setSelectedOrder(null)}
+                                    className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-full"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="p-6 max-h-[60vh] overflow-y-auto">
