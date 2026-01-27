@@ -313,10 +313,17 @@ export default function MainLayout() {
                     {profile.rol === 'administrador' && (
                         <>
                             <div className="pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase">Administración</div>
-                            <NavLink to="/admin/productos" icon={<ShoppingBag size={20} />} label="Productos" active={location.pathname === '/admin/productos'} />
                             <NavLink to="/admin/mesas" icon={<LayoutGrid size={20} />} label="Mesas" active={location.pathname === '/admin/mesas'} />
                             <NavLink to="/admin/usuarios" icon={<Users size={20} />} label="Usuarios" active={location.pathname === '/admin/usuarios'} />
                             <NavLink to="/admin/reportes" icon={<ClipboardList size={20} />} label="Reportes" active={location.pathname === '/admin/reportes'} />
+                        </>
+                    )}
+
+                    {/* Marketing / Products (Admin & Cajero) */}
+                    {['administrador', 'cajero'].includes(profile.rol) && (
+                        <>
+                            <div className="pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase">Marketing & Menú</div>
+                            <NavLink to="/admin/productos" icon={<ShoppingBag size={20} />} label="Productos" active={location.pathname === '/admin/productos'} />
                         </>
                     )}
                 </nav>

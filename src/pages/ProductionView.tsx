@@ -68,7 +68,7 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
     async function fetchPendingItems() {
         let query = supabase
             .from('order_items')
-            .select('*, products!inner(*), orders!inner(numero_mesa, garzon_id, estado)')
+            .select('*, products!inner(*), orders!inner(numero_mesa, garzon_id, estado, daily_order_number)')
             .in('estado', ['pendiente', 'en_preparacion'])
             .neq('orders.estado', 'cancelado')
             .order('created_at', { ascending: true });
@@ -121,138 +121,166 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
             </button>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {Object.entries(groupedItems).sort((a, b) => Number(a[0]) - Number(b[0])).map(([mesa, tableItems]) => {
-                    // Ordenar items de la mesa: primero los más antiguos
-                    tableItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                {Object.entries(groupedItems)
+                    .sort(([, itemsA], [, itemsB]) => {
+                        // Get the lowest order number for the table (e.g. if table has order #5 and #6, use 5)
+                        const getMinOrder = (items: OrderItem[]) => {
+                            const numbers = items.map(i => i.orders.daily_order_number).filter((n): n is number => n !== null);
+                            if (numbers.length === 0) {
+                                // Fallback to created_at if no number (old orders)
+                                return new Date(items[0].created_at).getTime();
+                            }
+                            return Math.min(...numbers);
+                        };
+                        return getMinOrder(itemsA) - getMinOrder(itemsB);
+                    })
+                    .map(([mesa, tableItems]) => {
+                        // Ordenar items de la mesa: primero los más antiguos
+                        tableItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-                    const oldestItemTime = new Date(tableItems[0].created_at);
-                    const elapsedMinutes = Math.floor((now.getTime() - oldestItemTime.getTime()) / 60000);
+                        const oldestItemTime = new Date(tableItems[0].created_at);
+                        const elapsedMinutes = Math.floor((now.getTime() - oldestItemTime.getTime()) / 60000);
 
-                    // Get Waiter Name
-                    const garzonId = (tableItems[0].orders as any).garzon_id;
-                    const garzonName = profileMap[garzonId] || 'Sin Asignar';
+                        // Get Waiter Name
+                        const garzonId = (tableItems[0].orders as any).garzon_id;
+                        const garzonName = profileMap[garzonId] || 'Sin Asignar';
 
-                    // Traffic Light Logic
-                    let headerColor = 'bg-gray-800'; // Default/Safe (< 15m)
-                    let timerColor = 'text-green-400';
+                        // Traffic Light Logic
+                        let headerColor = 'bg-gray-800'; // Default/Safe (< 15m)
+                        let timerColor = 'text-green-400';
 
-                    if (elapsedMinutes >= 30) {
-                        headerColor = 'bg-red-600 animate-pulse'; // Critical
-                        timerColor = 'text-white font-black';
-                    } else if (elapsedMinutes >= 15) {
-                        headerColor = 'bg-yellow-600'; // Warning
-                        timerColor = 'text-white font-bold';
-                    }
+                        if (elapsedMinutes >= 30) {
+                            headerColor = 'bg-red-600 animate-pulse'; // Critical
+                            timerColor = 'text-white font-black';
+                        } else if (elapsedMinutes >= 15) {
+                            headerColor = 'bg-yellow-600'; // Warning
+                            timerColor = 'text-white font-bold';
+                        }
 
-                    return (
-                        <div key={mesa} className="bg-white rounded-xl shadow-md border overflow-hidden flex flex-col">
-                            {/* Cabecera de la Tarjeta (Mesa) con Semáforo */}
-                            <div className={`${headerColor} text-white p-4 transition-colors duration-500`}>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <span className="text-xs font-bold opacity-80 uppercase tracking-wider">Mesa</span>
-                                        <h2 className="text-3xl font-bold leading-none">{mesa}</h2>
-                                        <div className="flex items-center gap-2 mt-1 text-xs font-medium opacity-90">
-                                            <span>👤 {garzonName.split(' ')[0]}</span>
-                                            <button
-                                                onClick={() => {
-                                                    setCallContext({ mesaId: Number(mesa) });
-                                                    setIsWaiterModalOpen(true);
-                                                }}
-                                                className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
-                                                title={`Llamar mesero para Mesa ${mesa}`}
-                                            >
-                                                <BellRing size={12} />
-                                            </button>
+                        return (
+                            <div key={mesa} className="bg-white rounded-xl shadow-md border overflow-hidden flex flex-col">
+                                {/* Cabecera de la Tarjeta (Mesa) con Semáforo */}
+                                <div className={`${headerColor} text-white p-4 transition-colors duration-500`}>
+                                    <div className="flex justify-between items-start">
+                                        {/* Left Side: Table & Waiter */}
+                                        <div className="flex flex-col justify-between h-full">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-xs font-bold opacity-80 uppercase tracking-wider">Mesa</span>
+                                                <h2 className="text-4xl font-black leading-none">{mesa}</h2>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 mt-2 text-xs font-medium opacity-90">
+                                                <span>👤 {garzonName.split(' ')[0]}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCallContext({ mesaId: Number(mesa) });
+                                                        setIsWaiterModalOpen(true);
+                                                    }}
+                                                    className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+                                                    title={`Llamar mesero para Mesa ${mesa}`}
+                                                >
+                                                    <BellRing size={12} />
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className={`flex items-center gap-1 text-lg font-mono ${timerColor}`}>
-                                            <Clock size={18} />
-                                            <span>{elapsedMinutes} min</span>
+
+                                        {/* Right Side: Timer & Order Number */}
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className={`flex items-center gap-1 text-xl font-mono ${timerColor}`}>
+                                                <Clock size={20} />
+                                                <span>{elapsedMinutes} min</span>
+                                            </div>
+
+                                            {/* Daily Order Numbers (Now on Right) */}
+                                            <div className="flex flex-wrap justify-end gap-1">
+                                                {Array.from(new Set(tableItems.map(i => i.orders.daily_order_number).filter(Boolean))).map(num => (
+                                                    <span key={num} className="bg-white text-gray-900 border-2 border-gray-900 px-2 py-0.5 rounded-md text-lg font-black font-mono shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                                                        #{num}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <span className="text-xs opacity-75">{tableItems.length} items</span>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Lista de Items */}
-                            <div className="p-2 flex-1 space-y-2 bg-gray-50">
-                                {tableItems.map(item => {
-                                    const isKitchen = item.products.area === 'cocina';
-                                    // Removed unused bgColor/borderColor
-                                    const textColor = isKitchen ? 'text-orange-900' : 'text-blue-900';
-                                    const Icon = isKitchen ? Utensils : Beer;
+                                {/* Lista de Items */}
+                                <div className="p-2 flex-1 space-y-2 bg-gray-50">
+                                    {tableItems.map(item => {
+                                        const isKitchen = item.products.area === 'cocina';
+                                        // Removed unused bgColor/borderColor
+                                        const textColor = isKitchen ? 'text-orange-900' : 'text-blue-900';
+                                        const Icon = isKitchen ? Utensils : Beer;
 
-                                    // PERMISSION LOGIC
-                                    const canUpdate =
-                                        profile?.rol === 'administrador' || // Admin can do ALL
-                                        profile?.rol === 'cajero' || // Cashier can do ALL
-                                        (profile?.rol === 'cocina' && isKitchen) || // Kitchen only kitchen
-                                        (profile?.rol === 'bar' && !isKitchen); // Bar only bar
+                                        // PERMISSION LOGIC
+                                        const canUpdate =
+                                            profile?.rol === 'administrador' || // Admin can do ALL
+                                            profile?.rol === 'cajero' || // Cashier can do ALL
+                                            (profile?.rol === 'cocina' && isKitchen) || // Kitchen only kitchen
+                                            (profile?.rol === 'bar' && !isKitchen); // Bar only bar
 
-                                    const showButton = canUpdate;
+                                        const showButton = canUpdate;
 
-                                    return (
+                                        return (
 
-                                        <div key={item.id} className="relative flex group">
-                                            {/* Left: Quantity Badge (Huge) */}
-                                            <div className={`
+                                            <div key={item.id} className="relative flex group">
+                                                {/* Left: Quantity Badge (Huge) */}
+                                                <div className={`
                                                 w-20 lg:w-24 flex-shrink-0 flex flex-col items-center justify-center p-2 rounded-l-xl border-y border-l
                                                 ${isKitchen ? 'bg-orange-600 text-white border-orange-700' : 'bg-blue-600 text-white border-blue-700'}
                                             `}>
-                                                <span className="text-4xl lg:text-5xl font-black tracking-tighter">
-                                                    {item.cantidad}
-                                                </span>
-                                                <span className="text-xs uppercase font-bold opacity-80">UNID</span>
-                                            </div>
+                                                    <span className="text-4xl lg:text-5xl font-black tracking-tighter">
+                                                        {item.cantidad}
+                                                    </span>
+                                                    <span className="text-xs uppercase font-bold opacity-80">UNID</span>
+                                                </div>
 
-                                            {/* Right: Details & Action */}
-                                            <div className={`
+                                                {/* Right: Details & Action */}
+                                                <div className={`
                                                 flex-1 flex flex-col justify-between p-3 rounded-r-xl border-y border-r border-gray-200 bg-white
                                                 ${item.nota_especial ? 'border-l-4 border-l-red-500' : ''}
                                             `}>
-                                                <div>
-                                                    <div className="flex justify-between items-start gap-2">
-                                                        <h3 className={`text-lg lg:text-xl font-black leading-tight ${textColor}`}>
-                                                            {item.products.nombre}
-                                                        </h3>
-                                                        <div className={`p-1.5 rounded-full flex-shrink-0 ${isKitchen ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                            <Icon size={16} />
+                                                    <div>
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <h3 className={`text-lg lg:text-xl font-black leading-tight ${textColor}`}>
+                                                                {item.products.nombre}
+                                                            </h3>
+                                                            <div className={`p-1.5 rounded-full flex-shrink-0 ${isKitchen ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                                <Icon size={16} />
+                                                            </div>
                                                         </div>
+
+                                                        {item.nota_especial && (
+                                                            <div className="mt-2 text-sm bg-red-50 text-red-700 font-bold px-2 py-1.5 rounded border border-red-200 flex items-start gap-1">
+                                                                <span className="text-red-500 text-xs">⚠️</span>
+                                                                {item.nota_especial}
+                                                            </div>
+                                                        )}
                                                     </div>
 
-                                                    {item.nota_especial && (
-                                                        <div className="mt-2 text-sm bg-red-50 text-red-700 font-bold px-2 py-1.5 rounded border border-red-200 flex items-start gap-1">
-                                                            <span className="text-red-500 text-xs">⚠️</span>
-                                                            {item.nota_especial}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Action Button */}
-                                                {showButton && (
-                                                    <button
-                                                        onClick={() => markAsReady(item.id)}
-                                                        className={`
+                                                    {/* Action Button */}
+                                                    {showButton && (
+                                                        <button
+                                                            onClick={() => markAsReady(item.id)}
+                                                            className={`
                                                             w-full mt-3 py-2 rounded-lg font-bold text-sm uppercase flex items-center justify-center gap-2 transition-all
                                                             ${isKitchen
-                                                                ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200'
-                                                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'}
+                                                                    ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200'
+                                                                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'}
                                                         `}
-                                                    >
-                                                        <CheckCircle size={18} />
-                                                        <span>Marcar Listo</span>
-                                                    </button>
-                                                )}
+                                                        >
+                                                            <CheckCircle size={18} />
+                                                            <span>Marcar Listo</span>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
 
                 {items.length === 0 && (
                     <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-dashed border-2">

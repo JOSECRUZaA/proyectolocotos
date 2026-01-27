@@ -223,6 +223,7 @@ export default function DailySales() {
                         <table className="w-full text-left min-w-[800px]">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
+                                    <th className="px-6 py-4 font-semibold text-gray-700">N°</th>
                                     <th className="px-6 py-4 font-semibold text-gray-700">Inicio</th>
                                     <th className="px-6 py-4 font-semibold text-gray-700">Mesa</th>
                                     <th className="px-6 py-4 font-semibold text-gray-700">Mesero</th>
@@ -234,10 +235,13 @@ export default function DailySales() {
                             <tbody className="divide-y divide-gray-100">
                                 {activeOrders.map(order => (
                                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 font-bold text-gray-800">
+                                            #{order.daily_order_number || '-'}
+                                        </td>
                                         <td className="px-6 py-4 text-gray-600">
                                             {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-gray-900 text-lg">
+                                        <td className="px-6 py-4 font-bold text-gray-900 text-lg gap-2">
                                             Mesa {order.numero_mesa}
                                         </td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">
@@ -279,7 +283,7 @@ export default function DailySales() {
                                 ))}
                                 {activeOrders.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                                             <div className="flex flex-col items-center">
                                                 <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-3">
                                                     <div className="w-6 h-6 border-2 border-green-200 rounded-full" />
@@ -339,6 +343,7 @@ export default function DailySales() {
                             <table className="w-full text-left min-w-[800px]">
                                 <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
+                                        <th className="px-6 py-4 font-semibold text-gray-700">N°</th>
                                         <th className="px-6 py-4 font-semibold text-gray-700">Hora</th>
                                         <th className="px-6 py-4 font-semibold text-gray-700">Mesa</th>
                                         <th className="px-6 py-4 font-semibold text-gray-700">Mesero</th>
@@ -350,6 +355,9 @@ export default function DailySales() {
                                 <tbody className="divide-y divide-gray-100">
                                     {sales.map(sale => (
                                         <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 font-bold text-gray-800">
+                                                #{sale.daily_order_number || '-'}
+                                            </td>
                                             <td className="px-6 py-4 text-gray-600">
                                                 {new Date(sale.updated_at).toLocaleTimeString()}
                                             </td>
@@ -385,7 +393,7 @@ export default function DailySales() {
 
                                     {sales.length === 0 && (
                                         <tr>
-                                            <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                            <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                                                 <Banknote className="mx-auto mb-2 opacity-50" size={32} />
                                                 No se han registrado ventas hoy
                                             </td>
@@ -404,7 +412,14 @@ export default function DailySales() {
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                         <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
                             <div>
-                                <h3 className="font-bold text-lg text-gray-900">Detalle de Venta</h3>
+                                <h3 className="font-bold text-lg text-gray-900">
+                                    Detalle de Venta
+                                    {selectedOrderData?.daily_order_number && (
+                                        <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-sm">
+                                            #{selectedOrderData.daily_order_number}
+                                        </span>
+                                    )}
+                                </h3>
                                 {selectedOrderData && (
                                     <p className="text-sm text-gray-500">
                                         Atendido por: <span className="font-medium text-gray-800">{profileMap[selectedOrderData.garzon_id || ''] || 'Desconocido'}</span>

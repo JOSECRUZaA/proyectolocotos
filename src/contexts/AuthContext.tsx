@@ -133,6 +133,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
+    // 3. Realtime Profile Updates
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase
+            .channel(`profile_updates_${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`,
+                },
+                (payload) => {
+                    console.log('Profile updated realtime:', payload);
+                    setProfile(payload.new as Profile);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
+
     const signOut = async () => {
         await supabase.auth.signOut();
         setProfile(null);

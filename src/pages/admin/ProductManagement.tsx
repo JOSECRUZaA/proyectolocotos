@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
 import { Plus, Edit2, Trash2, Search, X, RefreshCw, Star } from 'lucide-react';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 type Product = Database['public']['Tables']['products']['Row'];
 type ProductionArea = Product['area'];
 
@@ -46,6 +48,9 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
             });
         }
     }, [product, isOpen]);
+
+    const { profile } = useAuth();
+    const isCashier = profile?.rol === 'cajero';
 
     if (!isOpen) return null;
 
@@ -101,6 +106,7 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
                             value={formData.nombre}
                             onChange={e => setFormData({ ...formData, nombre: e.target.value })}
                             required
+                            disabled={isCashier}
                         />
                     </div>
 
@@ -113,73 +119,76 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
                             value={formData.precio}
                             onChange={e => setFormData({ ...formData, precio: parseFloat(e.target.value) })}
                             required
+                            disabled={isCashier}
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Imagen del Producto</label>
+                    {!isCashier && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Imagen del Producto</label>
 
-                        {/* Image Preview */}
-                        {formData.foto_url && (
-                            <div className="mb-3 relative group w-fit">
-                                <img src={formData.foto_url} alt="Vista previa" className="w-24 h-24 object-cover rounded-lg border" />
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, foto_url: '' })}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
-                                >
-                                    <X size={12} />
-                                </button>
+                            {/* Image Preview */}
+                            {formData.foto_url && (
+                                <div className="mb-3 relative group w-fit">
+                                    <img src={formData.foto_url} alt="Vista previa" className="w-24 h-24 object-cover rounded-lg border" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, foto_url: '' })}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* File Input */}
+                            <div className="flex gap-2 items-center">
+                                <label className="flex-1 cursor-pointer">
+                                    <span className="sr-only">Elegir archivo</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="block w-full text-sm text-gray-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-full file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-red-50 file:text-red-700
+                                        hover:file:bg-red-100"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+
+                                            try {
+                                                setLoading(true);
+                                                // 1. Upload to Supabase Storage
+                                                const fileExt = file.name.split('.').pop();
+                                                const fileName = `${Math.random()}.${fileExt}`;
+                                                const filePath = `${fileName}`;
+
+                                                const { error: uploadError } = await supabase.storage
+                                                    .from('products')
+                                                    .upload(filePath, file);
+
+                                                if (uploadError) throw uploadError;
+
+                                                // 2. Get Public URL
+                                                const { data } = supabase.storage
+                                                    .from('products')
+                                                    .getPublicUrl(filePath);
+
+                                                setFormData({ ...formData, foto_url: data.publicUrl });
+                                            } catch (error: any) {
+                                                alert('Error al subir imagen: ' + error.message);
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                    />
+                                </label>
                             </div>
-                        )}
-
-                        {/* File Input */}
-                        <div className="flex gap-2 items-center">
-                            <label className="flex-1 cursor-pointer">
-                                <span className="sr-only">Elegir archivo</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="block w-full text-sm text-gray-500
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-full file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-red-50 file:text-red-700
-                                    hover:file:bg-red-100"
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-
-                                        try {
-                                            setLoading(true);
-                                            // 1. Upload to Supabase Storage
-                                            const fileExt = file.name.split('.').pop();
-                                            const fileName = `${Math.random()}.${fileExt}`;
-                                            const filePath = `${fileName}`;
-
-                                            const { error: uploadError } = await supabase.storage
-                                                .from('products')
-                                                .upload(filePath, file);
-
-                                            if (uploadError) throw uploadError;
-
-                                            // 2. Get Public URL
-                                            const { data } = supabase.storage
-                                                .from('products')
-                                                .getPublicUrl(filePath);
-
-                                            setFormData({ ...formData, foto_url: data.publicUrl });
-                                        } catch (error: any) {
-                                            alert('Error al subir imagen: ' + error.message);
-                                        } finally {
-                                            setLoading(false);
-                                        }
-                                    }}
-                                />
-                            </label>
+                            <p className="text-xs text-gray-500 mt-1">Sube una imagen (JPG, PNG) desde tu dispositivo.</p>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Sube una imagen (JPG, PNG) desde tu dispositivo.</p>
-                    </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -188,6 +197,7 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
                                 className="w-full border rounded-lg p-2"
                                 value={formData.area}
                                 onChange={e => setFormData({ ...formData, area: e.target.value as ProductionArea })}
+                                disabled={isCashier}
                             >
                                 <option value="cocina">Cocina</option>
                                 <option value="bar">Bar</option>
@@ -202,6 +212,7 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
                                     checked={formData.controla_stock}
                                     onChange={e => setFormData({ ...formData, controla_stock: e.target.checked })}
                                     className="w-4 h-4 text-red-600 rounded"
+                                    disabled={isCashier}
                                 />
                                 <span className="text-sm font-medium">Controlar Stock</span>
                             </label>
@@ -317,6 +328,7 @@ function DeleteConfirmationModal({ isOpen, onClose, onConfirm, loading }: { isOp
 }
 
 export default function ProductManagement() {
+    const { profile } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -400,6 +412,14 @@ export default function ProductManagement() {
                     >
                         <Plus size={20} /> Nuevo Producto
                     </button>
+                    {profile?.rol !== 'cajero' && (
+                        <button
+                            onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 font-bold shadow-md shadow-red-200"
+                        >
+                            <Plus size={20} /> Nuevo Producto
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -464,15 +484,18 @@ export default function ProductManagement() {
                                         <button
                                             onClick={() => { setEditingProduct(product); setIsModalOpen(true); }}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                            title="Editar / Prioridad"
                                         >
                                             <Edit2 size={18} />
                                         </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(product.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        {profile?.rol !== 'cajero' && (
+                                            <button
+                                                onClick={() => handleDeleteClick(product.id)}
+                                                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

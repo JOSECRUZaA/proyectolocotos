@@ -115,6 +115,7 @@ export interface Database {
             orders: {
                 Row: {
                     id: number
+                    daily_order_number: number | null;
                     numero_mesa: number
                     garzon_id: string | null
                     cajero_id: string | null
