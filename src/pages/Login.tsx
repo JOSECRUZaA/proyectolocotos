@@ -47,7 +47,30 @@ export default function Login() {
                 setTimeout(() => reject(new Error('Tiempo de espera agotado. Revisa tu conexión.')), 10000);
             });
 
-            // LOGIN REQUEST
+            // 1. CHECK IF USER EXISTS IN PROFILES
+            // We use the email to search. Since we don't have direct access to auth.users, 
+            // we assume profiles are kept in sync or we use specific logic.
+            // CAUTION: This requires 'profiles' to be readable by anon/public for this check to work perfectly,
+            // or we just trust Supabase Auth. 
+            // BUT user specifically requested "identifique si se equivoco usuario o contraseña".
+            // So we try to query profiles (assuming email is stored or derivable).
+            // Looking at UserManagement, profiles has 'email' column? 
+            // In UserManagement it maps profiles: 
+            // const { data } = await supabase.from('profiles').select('*')...
+            // It seems profiles HAS email. Let's verify.
+
+            // To be safe and compliant with user request, we try to fetch the profile by email first.
+            const { data: userCheck } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', email.toLowerCase()) // Emails are usually lowercase in DB
+                .maybeSingle();
+
+            if (!userCheck) {
+                throw new Error('El usuario ingresado no existe.');
+            }
+
+            // 2. LOGIN REQUEST
             const loginPromise = supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -58,7 +81,13 @@ export default function Login() {
             const { data: authData, error: authError } = result as any;
 
             if (authError) {
-                throw authError; // Throw to catch block
+                // If we are here, user exists (checked above), so it MUST be password error
+                // (or some other auth error like email not confirmed)
+                console.error('Auth error:', authError);
+                if (authError.message.includes('Invalid login credentials')) {
+                    throw new Error('La contraseña es incorrecta.');
+                }
+                throw authError; // Throw other errors as is
             }
 
             if (authData.user) {
@@ -83,9 +112,17 @@ export default function Login() {
                 // Success - Navigation handled by useEffect or navigate
                 navigate('/');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Login error:', err);
-            const errorMessage = err instanceof Error ? err.message : 'Error desconocido al iniciar sesión';
+            let errorMessage = err instanceof Error ? err.message : 'Error desconocido al iniciar sesión';
+
+            // Translate common Supabase Auth errors
+            if (errorMessage.includes('Invalid login credentials')) {
+                errorMessage = 'Usuario o contraseña incorrectos';
+            } else if (errorMessage.includes('Email not confirmed')) {
+                errorMessage = 'El correo electrónico no ha sido confirmado';
+            }
+
             setError(errorMessage);
             setLoading(false);
         }

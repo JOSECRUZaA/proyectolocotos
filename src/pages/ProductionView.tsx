@@ -112,13 +112,15 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
                 <Clock className="text-orange-500" />
                 {getTitle()}
             </h1>
-            <button
-                onClick={() => { setCallContext(null); setIsWaiterModalOpen(true); }}
-                className="ml-auto flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 font-bold text-sm transition-colors"
-            >
-                <BellRing size={18} />
-                Llamar a Garzón
-            </button>
+            {profile?.rol !== 'garzon' && (
+                <button
+                    onClick={() => { setCallContext(null); setIsWaiterModalOpen(true); }}
+                    className="ml-auto flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 font-bold text-sm transition-colors"
+                >
+                    <BellRing size={18} />
+                    Llamar a Garzón
+                </button>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Object.entries(groupedItems)
@@ -171,17 +173,19 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
 
                                             <div className="flex items-center gap-2 mt-2 text-xs font-medium opacity-90">
                                                 <span>👤 {garzonName.split(' ')[0]}</span>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setCallContext({ mesaId: Number(mesa) });
-                                                        setIsWaiterModalOpen(true);
-                                                    }}
-                                                    className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
-                                                    title={`Llamar mesero para Mesa ${mesa}`}
-                                                >
-                                                    <BellRing size={12} />
-                                                </button>
+                                                {profile?.rol !== 'garzon' && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCallContext({ mesaId: Number(mesa) });
+                                                            setIsWaiterModalOpen(true);
+                                                        }}
+                                                        className="p-1 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+                                                        title={`Llamar mesero para Mesa ${mesa}`}
+                                                    >
+                                                        <BellRing size={12} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 
