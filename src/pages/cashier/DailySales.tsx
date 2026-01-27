@@ -172,6 +172,90 @@ export default function DailySales() {
         }
     }
 
+    async function handlePrintTicket(order: Order) {
+        try {
+            // 1. Fetch details if necessary (we need items for the receipt)
+            const { data: items, error } = await supabase
+                .from('order_items')
+                .select('*, products(*)')
+                .eq('order_id', order.id);
+
+            if (error || !items) throw new Error('No se pudieron cargar los detalles para imprimir');
+
+            // 2. Prepare Data
+            const waiterName = profileMap[order.garzon_id || ''] || 'Desconocido';
+            const date = new Date(order.created_at).toLocaleString('es-BO');
+            const orderItems = items as any[];
+
+            // 3. Open Print Window
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) return;
+
+            const htmlContent = `
+                <html>
+                <head>
+                    <title>Ticket #${order.daily_order_number || '-'}</title>
+                    <style>
+                        body { font-family: 'Courier New', monospace; padding: 20px; max-width: 350px; margin: 0 auto; color: #000; }
+                        .header { text-align: center; margin-bottom: 15px; }
+                        .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                        .subtitle { font-size: 12px; text-transform: uppercase; }
+                        .info { font-size: 12px; margin-bottom: 15px; line-height: 1.4; }
+                        .divider { border-top: 1px dashed #000; margin: 10px 0; }
+                        .item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+                        .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 15px; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="title">WENDY RESTAURANTE</div>
+                        <div class="subtitle">Detalle de Consumo</div>
+                    </div>
+                    
+                    <div class="info">
+                        <div><strong>Orden:</strong> #${order.daily_order_number || '-'}</div>
+                        <div><strong>Fecha:</strong> ${date}</div>
+                        <div><strong>Mesa:</strong> ${order.numero_mesa}</div>
+                        <div><strong>Atendido por:</strong> ${waiterName}</div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    ${orderItems.map(item => `
+                        <div class="item">
+                            <span>${item.cantidad} x ${item.products.nombre}</span>
+                            <span>Bs ${(item.cantidad * item.precio_unitario).toFixed(2)}</span>
+                        </div>
+                    `).join('')}
+
+                    <div class="divider"></div>
+
+                    <div class="total-row">
+                        <span>TOTAL:</span>
+                        <span>Bs ${order.total.toFixed(2)}</span>
+                    </div>
+
+                    <div class="footer">
+                        Gracias por su preferencia
+                    </div>
+
+                    <script>
+                        window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); }
+                    </script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+
+        } catch (error) {
+            console.error('Error printing:', error);
+            alert('Error al generar el ticket');
+        }
+    }
+
     const totalSales = sales.reduce((acc, order) => acc + order.total, 0);
 
     if (loading) return <div className="p-8">Cargando datos...</div>;
@@ -261,6 +345,13 @@ export default function DailySales() {
                                             Bs {order.total.toFixed(2)}
                                         </td>
                                         <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => handlePrintTicket(order)}
+                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                title="Imprimir"
+                                            >
+                                                <Printer size={20} />
+                                            </button>
                                             <button
                                                 onClick={() => setSelectedOrder(order.id)}
                                                 className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
@@ -379,7 +470,14 @@ export default function DailySales() {
                                             <td className="px-6 py-4 text-right font-bold text-gray-900">
                                                 Bs {sale.total.toFixed(2)}
                                             </td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => handlePrintTicket(sale)}
+                                                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                    title="Imprimir"
+                                                >
+                                                    <Printer size={20} />
+                                                </button>
                                                 <button
                                                     onClick={() => setSelectedOrder(sale.id)}
                                                     className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
@@ -428,73 +526,7 @@ export default function DailySales() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => {
-                                        if (!selectedOrderData) return;
-                                        const printWindow = window.open('', '_blank');
-                                        if (!printWindow) return;
-
-                                        const waiterName = profileMap[selectedOrderData.garzon_id || ''] || 'Desconocido';
-                                        const date = new Date(selectedOrderData.created_at).toLocaleString('es-BO');
-
-                                        const htmlContent = `
-                                            <html>
-                                            <head>
-                                                <title>Ticket #${selectedOrderData.daily_order_number || '-'}</title>
-                                                <style>
-                                                    body { font-family: 'Courier New', monospace; padding: 20px; max-width: 350px; margin: 0 auto; color: #000; }
-                                                    .header { text-align: center; margin-bottom: 15px; }
-                                                    .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-                                                    .subtitle { font-size: 12px; text-transform: uppercase; }
-                                                    .info { font-size: 12px; margin-bottom: 15px; line-height: 1.4; }
-                                                    .divider { border-top: 1px dashed #000; margin: 10px 0; }
-                                                    .item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
-                                                    .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 15px; }
-                                                    .footer { text-align: center; margin-top: 20px; font-size: 10px; }
-                                                </style>
-                                            </head>
-                                            <body>
-                                                <div class="header">
-                                                    <div class="title">WENDY RESTAURANTE</div>
-                                                    <div class="subtitle">Detalle de Consumo</div>
-                                                </div>
-                                                
-                                                <div class="info">
-                                                    <div><strong>Orden:</strong> #${selectedOrderData.daily_order_number || '-'}</div>
-                                                    <div><strong>Fecha:</strong> ${date}</div>
-                                                    <div><strong>Mesa:</strong> ${selectedOrderData.numero_mesa}</div>
-                                                    <div><strong>Atendido por:</strong> ${waiterName}</div>
-                                                </div>
-
-                                                <div class="divider"></div>
-
-                                                ${orderItems.map(item => `
-                                                    <div class="item">
-                                                        <span>${item.cantidad} x ${item.products.nombre}</span>
-                                                        <span>Bs ${(item.cantidad * item.precio_unitario).toFixed(2)}</span>
-                                                    </div>
-                                                `).join('')}
-
-                                                <div class="divider"></div>
-
-                                                <div class="total-row">
-                                                    <span>TOTAL:</span>
-                                                    <span>Bs ${selectedOrderData.total.toFixed(2)}</span>
-                                                </div>
-
-                                                <div class="footer">
-                                                    Gracias por su preferencia
-                                                </div>
-
-                                                <script>
-                                                    window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); }
-                                                </script>
-                                            </body>
-                                            </html>
-                                        `;
-
-                                        printWindow.document.write(htmlContent);
-                                        printWindow.document.close();
-                                    }}
+                                    onClick={() => selectedOrderData && handlePrintTicket(selectedOrderData)}
                                     className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-full transition-colors mr-2"
                                     title="Imprimir Ticket"
                                 >
