@@ -92,11 +92,11 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
 
     if (loading) return <div className="p-8">Cargando pedidos...</div>;
 
-    // Agrupar items por mesa
+    // Agrupar items por ORDEN (ID de la orden)
     const groupedItems = items.reduce((acc, item) => {
-        const mesa = item.orders.numero_mesa;
-        if (!acc[mesa]) acc[mesa] = [];
-        acc[mesa].push(item);
+        const orderId = item.order_id;
+        if (!acc[orderId]) acc[orderId] = [];
+        acc[orderId].push(item);
         return acc;
     }, {} as Record<number, OrderItem[]>);
 
@@ -125,26 +125,23 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Object.entries(groupedItems)
                     .sort(([, itemsA], [, itemsB]) => {
-                        // Get the lowest order number for the table (e.g. if table has order #5 and #6, use 5)
-                        const getMinOrder = (items: OrderItem[]) => {
-                            const numbers = items.map(i => i.orders.daily_order_number).filter((n): n is number => n !== null);
-                            if (numbers.length === 0) {
-                                // Fallback to created_at if no number (old orders)
-                                return new Date(items[0].created_at).getTime();
-                            }
-                            return Math.min(...numbers);
-                        };
-                        return getMinOrder(itemsA) - getMinOrder(itemsB);
+                        // Ordenar por hora de creación del PRIMER item de la orden
+                        const dateA = new Date(itemsA[0].created_at).getTime();
+                        const dateB = new Date(itemsB[0].created_at).getTime();
+                        return dateA - dateB;
                     })
-                    .map(([mesa, tableItems]) => {
-                        // Ordenar items de la mesa: primero los más antiguos
-                        tableItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                    .map(([orderId, orderItems]) => {
+                        // Ordenar items dentro de la orden
+                        orderItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-                        const oldestItemTime = new Date(tableItems[0].created_at);
+                        const oldestItemTime = new Date(orderItems[0].created_at);
                         const elapsedMinutes = Math.floor((now.getTime() - oldestItemTime.getTime()) / 60000);
 
-                        // Get Waiter Name
-                        const garzonId = (tableItems[0].orders as any).garzon_id;
+                        // Extract Order Details from first item
+                        const order = orderItems[0].orders;
+                        const mesa = order.numero_mesa;
+                        const dailyNumber = order.daily_order_number;
+                        const garzonId = (order as any).garzon_id;
                         const garzonName = profileMap[garzonId] || 'Sin Asignar';
 
                         // Traffic Light Logic
@@ -160,7 +157,7 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
                         }
 
                         return (
-                            <div key={mesa} className="bg-white rounded-xl shadow-md border overflow-hidden flex flex-col">
+                            <div key={orderId} className="bg-white rounded-xl shadow-md border overflow-hidden flex flex-col">
                                 {/* Cabecera de la Tarjeta (Mesa) con Semáforo */}
                                 <div className={`${headerColor} text-white p-4 transition-colors duration-500`}>
                                     <div className="flex justify-between items-start">
@@ -196,21 +193,19 @@ export default function ProductionView({ area }: { area?: 'cocina' | 'bar' }) {
                                                 <span>{elapsedMinutes} min</span>
                                             </div>
 
-                                            {/* Daily Order Numbers (Now on Right) */}
-                                            <div className="flex flex-wrap justify-end gap-1">
-                                                {Array.from(new Set(tableItems.map(i => i.orders.daily_order_number).filter(Boolean))).map(num => (
-                                                    <span key={num} className="bg-white text-gray-900 border-2 border-gray-900 px-2 py-0.5 rounded-md text-lg font-black font-mono shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
-                                                        #{num}
-                                                    </span>
-                                                ))}
-                                            </div>
+                                            {/* Daily Order Number (Single) */}
+                                            {dailyNumber && (
+                                                <span className="bg-white text-gray-900 border-2 border-gray-900 px-3 py-1 rounded-md text-2xl font-black font-mono shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                                                    #{dailyNumber}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Lista de Items */}
                                 <div className="p-2 flex-1 space-y-2 bg-gray-50">
-                                    {tableItems.map(item => {
+                                    {orderItems.map(item => {
                                         const isKitchen = item.products.area === 'cocina';
                                         // Removed unused bgColor/borderColor
                                         const textColor = isKitchen ? 'text-orange-900' : 'text-blue-900';

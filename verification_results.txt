@@ -1,0 +1,7 @@
+
+--- VERIFICATION RESULTS ---
+TOTAL: 37
+OPTIMIZED: 23
+UNOPTIMIZED: 13
+----------------------------
+  

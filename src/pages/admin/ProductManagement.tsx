@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
-import { Plus, Edit2, Trash2, Search, X, RefreshCw, Star, Utensils } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, RefreshCw, Star, Utensils, Image as ImageIcon } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { compressImage } from '../../utils/imageOptimizer';
 
 type Product = Database['public']['Tables']['products']['Row'];
 type ProductionArea = Product['area'];
@@ -160,18 +161,21 @@ function ProductModal({ isOpen, onClose, product, onSave }: ActionModalProps) {
 
                                             try {
                                                 setLoading(true);
-                                                // 1. Upload to Supabase Storage
-                                                const fileExt = file.name.split('.').pop();
-                                                const fileName = `${Math.random()}.${fileExt}`;
+
+                                                // 1. Compress Image
+                                                const compressedFile = await compressImage(file);
+
+                                                // 2. Upload to Supabase Storage
+                                                const fileName = `${Math.random()}.jpg`; // Force jpg extension
                                                 const filePath = `${fileName}`;
 
                                                 const { error: uploadError } = await supabase.storage
                                                     .from('products')
-                                                    .upload(filePath, file);
+                                                    .upload(filePath, compressedFile);
 
                                                 if (uploadError) throw uploadError;
 
-                                                // 2. Get Public URL
+                                                // 3. Get Public URL
                                                 const { data } = supabase.storage
                                                     .from('products')
                                                     .getPublicUrl(filePath);
@@ -339,6 +343,9 @@ export default function ProductManagement() {
     const [productToDelete, setProductToDelete] = useState<number | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    // Optimization State
+    const [optimizationStatus, setOptimizationStatus] = useState<{ total: number; current: number } | null>(null);
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -390,6 +397,64 @@ export default function ProductManagement() {
         }
     };
 
+    const optimizeAllImages = async () => {
+        if (!confirm('Esto optimizará TODAS las imágenes de los productos. Puede tardar unos minutos.\n\n¿Deseas continuar?')) return;
+
+        const productsWithImages = products.filter(p => p.foto_url);
+        if (productsWithImages.length === 0) {
+            alert('No hay productos con imágenes para optimizar.');
+            return;
+        }
+
+        setOptimizationStatus({ total: productsWithImages.length, current: 0 });
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < productsWithImages.length; i++) {
+            const product = productsWithImages[i];
+            setOptimizationStatus({ total: productsWithImages.length, current: i + 1 });
+
+            try {
+                // 1. Fetch the image
+                const response = await fetch(product.foto_url!);
+                const blob = await response.blob();
+                const file = new File([blob], 'temp.jpg', { type: blob.type });
+
+                // 2. Compress
+                const compressedFile = await compressImage(file);
+
+                // 3. Re-upload (overwrite)
+                const fileName = `optimized_${Date.now()}_${product.id}.jpg`;
+                const { error: uploadError } = await supabase.storage
+                    .from('products')
+                    .upload(fileName, compressedFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('products')
+                    .getPublicUrl(fileName);
+
+                // 4. Update Product
+                await supabase
+                    .from('products')
+                    .update({ foto_url: publicUrlData.publicUrl })
+                    .eq('id', product.id);
+
+                successCount++;
+
+            } catch (error) {
+                console.error(`Error optimizing product ${product.nombre}:`, error);
+                failCount++;
+            }
+        }
+
+        setOptimizationStatus(null);
+        alert(`Optimización finalizada.\n\nExitosos: ${successCount}\nFallidos: ${failCount}`);
+        fetchProducts();
+    };
+
     const handleDeleteClick = (id: number) => {
         setProductToDelete(id);
         setDeleteModalOpen(true);
@@ -404,6 +469,23 @@ export default function ProductManagement() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
                 <div className="flex gap-2">
+                    {optimizationStatus && (
+                        <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-100">
+                            <RefreshCw size={20} className="animate-spin" />
+                            <span className="font-bold">Optimizando {optimizationStatus.current}/{optimizationStatus.total}</span>
+                        </div>
+                    )}
+
+                    {!optimizationStatus && profile?.rol === 'administrador' && (
+                        <button
+                            onClick={optimizeAllImages}
+                            className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-100 font-medium transition-colors"
+                            title="Reducir tamaño de todas las imágenes existentes"
+                        >
+                            <ImageIcon size={20} /> Optimizar Imgs
+                        </button>
+                    )}
+
                     <button
                         onClick={startDayInventory}
                         className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 font-medium"
