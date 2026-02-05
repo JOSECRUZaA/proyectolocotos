@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
-import { ArrowLeft, CreditCard, Banknote, QrCode, Receipt, Lock, ChefHat, Beer, CheckCircle, BellRing } from 'lucide-react';
+import { ArrowLeft, Receipt, Lock, ChefHat, Beer, CheckCircle, BellRing } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { WaiterCallModal } from '../../components/WaiterCallModal';
 
@@ -20,7 +20,7 @@ export default function OrderPayment() {
     const [items, setItems] = useState<OrderItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'tarjeta' | 'qr'>('efectivo');
+    const [paymentMethod] = useState<'efectivo' | 'tarjeta' | 'qr'>('efectivo');
     const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
     const [cashReceived, setCashReceived] = useState<string>('');
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -344,68 +344,38 @@ export default function OrderPayment() {
                     )}
 
                     <div className={`bg-white rounded-3xl shadow-xl border border-gray-100 p-5 sticky top-4`}>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Método de Pago</h3>
-
-                        {/* Horizontal Grid for Payment Methods - Compact */}
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                            {[
-                                { id: 'efectivo', icon: Banknote, label: 'Efectivo', color: 'green' },
-                                { id: 'tarjeta', icon: CreditCard, label: 'Tarjeta', color: 'blue' },
-                                { id: 'qr', icon: QrCode, label: 'QR', color: 'purple' }
-                            ].map((method) => (
-                                <button
-                                    key={method.id}
-                                    onClick={() => setPaymentMethod(method.id as any)}
-                                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all h-24 ${paymentMethod === method.id
-                                        ? 'border-gray-800 bg-gray-50 shadow-inner'
-                                        : 'border-gray-100 bg-white hover:border-gray-300 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <div className={`p-2 rounded-full transition-colors ${paymentMethod === method.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-400'
-                                        }`}>
-                                        <method.icon size={20} />
-                                    </div>
-                                    <span className={`text-xs font-bold ${paymentMethod === method.id ? 'text-gray-900' : 'text-gray-500'}`}>
-                                        {method.label}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* CHANGE CALCULATOR - Compact */}
-                        {paymentMethod === 'efectivo' && (
-                            <div className="mb-4 pt-4 border-t border-dashed border-gray-200 animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Monto Recibido</label>
-                                <div className="relative mb-3 group">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">Bs</span>
-                                    <input
-                                        type="number"
-                                        value={cashReceived}
-                                        onChange={(e) => setCashReceived(e.target.value)}
-                                        className="w-full pl-10 pr-3 py-2 text-2xl font-black rounded-lg border-2 border-gray-200 focus:border-gray-800 focus:ring-0 outline-none transition-all bg-gray-50 focus:bg-white"
-                                        placeholder="0.00"
-                                        autoFocus
-                                    />
-                                </div>
-
-                                <div className={`px-4 py-2 rounded-lg flex justify-between items-center transition-colors border-l-4 shadow-sm ${(parseFloat(cashReceived || '0') - calculateTotal()) >= 0
-                                    ? 'bg-green-50 border-green-500 text-green-900'
-                                    : 'bg-red-50 border-red-500 text-red-900'
-                                    }`}>
-                                    <span className="font-bold text-xs uppercase opacity-80">
-                                        {(parseFloat(cashReceived || '0') - calculateTotal()) >= 0 ? 'Cambio' : 'Falta'}
-                                    </span>
-                                    <span className="text-xl font-black tracking-tight">
-                                        <span className="text-xs align-top mr-0.5 opacity-50 font-bold">Bs</span>
-                                        {Math.abs(parseFloat(cashReceived || '0') - calculateTotal()).toFixed(2)}
-                                    </span>
-                                </div>
+                        {/* CHANGE CALCULATOR - Always Visible (Efectivo Only) */}
+                        <div className="mb-4 animate-in fade-in slide-in-from-top-2">
+                            <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Monto Recibido (Efectivo)</label>
+                            <div className="relative mb-3 group">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">Bs</span>
+                                <input
+                                    type="number"
+                                    value={cashReceived}
+                                    onChange={(e) => setCashReceived(e.target.value)}
+                                    className="w-full pl-10 pr-3 py-2 text-2xl font-black rounded-lg border-2 border-gray-200 focus:border-gray-800 focus:ring-0 outline-none transition-all bg-gray-50 focus:bg-white"
+                                    placeholder="0.00"
+                                    autoFocus
+                                />
                             </div>
-                        )}
+
+                            <div className={`px-4 py-2 rounded-lg flex justify-between items-center transition-colors border-l-4 shadow-sm ${(parseFloat(cashReceived || '0') - calculateTotal()) >= 0
+                                ? 'bg-green-50 border-green-500 text-green-900'
+                                : 'bg-red-50 border-red-500 text-red-900'
+                                }`}>
+                                <span className="font-bold text-xs uppercase opacity-80">
+                                    {(parseFloat(cashReceived || '0') - calculateTotal()) >= 0 ? 'Cambio' : 'Falta'}
+                                </span>
+                                <span className="text-xl font-black tracking-tight">
+                                    <span className="text-xs align-top mr-0.5 opacity-50 font-bold">Bs</span>
+                                    {Math.abs(parseFloat(cashReceived || '0') - calculateTotal()).toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
 
                         <button
                             onClick={handlePayment}
-                            disabled={processing || !canPay || (paymentMethod === 'efectivo' && parseFloat(cashReceived || '0') < calculateTotal())}
+                            disabled={processing || !canPay || (parseFloat(cashReceived || '0') < calculateTotal())}
                             className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-lg shadow-xl shadow-gray-200 hover:shadow-2xl hover:bg-black hover:-translate-y-0.5 active:translate-y-0 active:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none transition-all flex items-center justify-center gap-2"
                         >
                             {processing ? 'Procesando...' : (

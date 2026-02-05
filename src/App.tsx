@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainLayout from './layouts/MainLayout';
 // import Dashboard from './pages/Dashboard'; // Removed
@@ -17,6 +17,11 @@ import TableManagement from './pages/admin/TableManagement';
 import WaiterOrderMonitor from './pages/waiter/WaiterOrderMonitor';
 import OnlineUsersPage from './pages/admin/OnlineUsersPage';
 import { OnlineUsersProvider } from './contexts/OnlineUsersContext';
+import { ShiftProvider } from './contexts/ShiftContext';
+import ShiftGate from './components/ShiftGate';
+import ActiveSessions from './pages/admin/ActiveSessions';
+import StaffMonitor from './pages/admin/StaffMonitor';
+import MyShift from './pages/staff/MyShift';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -93,30 +98,38 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <OnlineUsersProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+          <ShiftProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-            <Route path="/" element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<RoleBasedRedirect />} />
-              <Route path="mesas" element={<TableMap />} />
-              <Route path="mesas/pedidos" element={<WaiterOrderMonitor />} />
-              <Route path="mesas/:tableId/nueva-orden" element={<OrderCreation />} />
-              <Route path="cocina" element={<ProductionView area="cocina" />} />
-              <Route path="bar" element={<ProductionView area="bar" />} />
-              <Route path="caja" element={<CashSession />} />
-              <Route path="caja/cobrar/:tableId" element={<OrderPayment />} />
-              <Route path="ventas-diarias" element={<DailySales />} />
-              <Route path="admin/reportes" element={<ReportsDashboard />} />
-              <Route path="admin/productos" element={<ProductManagement />} />
-              <Route path="admin/usuarios" element={<UserManagement />} />
-              <Route path="admin/mesas" element={<TableManagement />} />
-              <Route path="admin/online" element={<OnlineUsersPage />} />
-            </Route>
-          </Routes>
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<RoleBasedRedirect />} />
+                {/* OPERATIONAL (SHIFT REQUIRED) */}
+                <Route element={<ShiftGate><Outlet /></ShiftGate>}>
+                  <Route path="mesas" element={<TableMap />} />
+                  <Route path="mesas/pedidos" element={<WaiterOrderMonitor />} />
+                  <Route path="mesas/:tableId/nueva-orden" element={<OrderCreation />} />
+                  <Route path="cocina" element={<ProductionView area="cocina" />} />
+                  <Route path="bar" element={<ProductionView area="bar" />} />
+                  <Route path="caja" element={<CashSession />} />
+                  <Route path="caja/cobrar/:tableId" element={<OrderPayment />} />
+                  <Route path="mi-asistencia" element={<MyShift />} />
+                </Route>
+                <Route path="ventas-diarias" element={<DailySales />} />
+                <Route path="admin/reportes" element={<ReportsDashboard />} />
+                <Route path="admin/productos" element={<ProductManagement />} />
+                <Route path="admin/usuarios" element={<UserManagement />} />
+                <Route path="admin/mesas" element={<TableManagement />} />
+                <Route path="admin/online" element={<OnlineUsersPage />} />
+                <Route path="admin/personal" element={<StaffMonitor />} />
+                <Route path="admin/cajas" element={<ActiveSessions />} />
+              </Route>
+            </Routes>
+          </ShiftProvider>
         </OnlineUsersProvider>
       </AuthProvider>
     </BrowserRouter>
