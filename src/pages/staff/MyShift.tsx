@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Clock, LogOut, Calendar, UserCheck, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 
 interface ShiftHistory {
     id: number;
@@ -18,6 +19,7 @@ export default function MyShift() {
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [history, setHistory] = useState<ShiftHistory[]>([]);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -72,12 +74,13 @@ export default function MyShift() {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    const handleEndShift = async () => {
-        const confirm = window.confirm('¿Estás seguro de que deseas finalizar tu turno por hoy?');
-        if (confirm) {
-            await endShift();
-            navigate('/');
-        }
+    const handleEndShift = () => {
+        setIsConfirmOpen(true);
+    };
+
+    const confirmEndShift = async () => {
+        await endShift();
+        navigate('/');
     };
 
     if (loading) return <div>Cargando asistencia...</div>;
@@ -220,6 +223,17 @@ export default function MyShift() {
                     </table>
                 </div>
             </div>
+            {/* Modal de Confirmación */}
+            <ConfirmationModal
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={confirmEndShift}
+                title="¿Finalizar Turno?"
+                message="¿Estás seguro de que deseas finalizar tu turno por hoy? Se registrará tu hora de salida y no podrás realizar acciones de staff hasta tu próximo turno."
+                confirmText="Sí, Finalizar"
+                cancelText="Cancelar"
+                type="warning"
+            />
         </div>
     );
 }
