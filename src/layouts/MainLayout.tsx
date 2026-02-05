@@ -340,6 +340,8 @@ export default function MainLayout() {
                         >
                             <NavLink to="/caja" icon={<CircleDollarSign size={18} />} label="Gestión de Caja" active={location.pathname === '/caja'} />
                             <NavLink to="/ventas-diarias" icon={<ClipboardList size={18} />} label="Ventas del Día" active={location.pathname === '/ventas-diarias'} />
+                            {/* Reports for Cashier & Admin */}
+                            <NavLink to="/admin/reportes" icon={<ClipboardList size={18} />} label="Reportes" active={location.pathname === '/admin/reportes'} />
                             {profile.rol === 'administrador' && (
                                 <NavLink to="/admin/cajas" icon={<Briefcase size={18} />} label="Monitor de Cajas" active={location.pathname === '/admin/cajas'} />
                             )}
@@ -353,8 +355,6 @@ export default function MainLayout() {
                             label="Administración"
                             active={isGroupActive(['/admin/usuarios', '/admin/online', '/admin/personal', '/admin/mesas', '/admin/productos', '/admin/reportes'])}
                         >
-                            <NavLink to="/admin/reportes" icon={<ClipboardList size={18} />} label="Reportes & Métricas" active={location.pathname === '/admin/reportes'} />
-                            <div className="my-2 border-t border-gray-100"></div> {/* Separator */}
                             <NavLink to="/admin/usuarios" icon={<Users size={18} />} label="Usuarios" active={location.pathname === '/admin/usuarios'} />
                             <NavLink to="/admin/online" icon={<Users size={18} />} label="Usuarios Online" active={location.pathname === '/admin/online'} />
                             <NavLink to="/admin/personal" icon={<Briefcase size={18} />} label="Monitor Personal" active={location.pathname === '/admin/personal'} />

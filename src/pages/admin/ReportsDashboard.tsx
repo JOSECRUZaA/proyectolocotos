@@ -35,6 +35,7 @@ export default function ReportsDashboard() {
     const [customEnd, setCustomEnd] = useState('');
     const [loading, setLoading] = useState(true);
     const [showEmailModal, setShowEmailModal] = useState(false);
+    const [selectedWaiter, setSelectedWaiter] = useState<{ name: string; id: string } | null>(null);
 
     const [metrics, setMetrics] = useState<ReportMetrics>({
         totalRevenue: 0,
@@ -510,16 +511,27 @@ export default function ReportsDashboard() {
                                 <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                                     <Users size={20} className="text-gray-400" /> Rendimiento Meseros
                                 </h3>
+                                <span className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-lg animate-pulse no-print">
+                                    Click para ver detalle
+                                </span>
                             </div>
                             <div className="p-6 space-y-4">
                                 {metrics.salesByWaiter.map((w, i) => (
-                                    <div key={i}>
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => {
+                                            console.log('Clicked waiter:', w.name);
+                                            setSelectedWaiter({ name: w.name, id: w.name });
+                                        }}
+                                        className="w-full text-left group transition-all hover:bg-gray-50 p-2 -mx-2 rounded-xl"
+                                    >
                                         <div className="flex justify-between items-end mb-1">
                                             <span className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${i === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600 print:bg-gray-200 print:text-black'}`}>
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${i === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600 group-hover:bg-white transition-colors print:bg-gray-200 print:text-black'}`}>
                                                     {i + 1}
                                                 </div>
-                                                {w.name}
+                                                <span className="group-hover:text-blue-600 transition-colors">{w.name}</span>
                                             </span>
                                             <span className="text-xs font-bold text-gray-900">
                                                 Bs {w.total.toLocaleString('es-BO')} <span className="text-gray-400 font-normal">({w.orders} pedidos)</span>
@@ -527,11 +539,11 @@ export default function ReportsDashboard() {
                                         </div>
                                         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden print:border print:border-gray-300">
                                             <div
-                                                className={`h-full rounded-full ${i === 0 ? 'bg-yellow-400' : 'bg-blue-500'} print:bg-black`}
+                                                className={`h-full rounded-full ${i === 0 ? 'bg-yellow-400' : 'bg-blue-500'} print:bg-black group-hover:bg-blue-600 transition-colors`}
                                                 style={{ width: `${(w.total / metrics.totalRevenue) * 100}%` }}
                                             ></div>
                                         </div>
-                                    </div>
+                                    </button>
                                 ))}
                                 {metrics.salesByWaiter.length === 0 && (
                                     <p className="text-center text-gray-400 text-sm py-4">No hay datos de meseros en este periodo.</p>
@@ -629,6 +641,13 @@ export default function ReportsDashboard() {
                 onClose={() => setShowEmailModal(false)}
                 metrics={metrics}
             />
+
+            <WaiterDetailModal
+                isOpen={!!selectedWaiter}
+                onClose={() => setSelectedWaiter(null)}
+                waiterName={selectedWaiter?.name || ''}
+                orders={metrics.detailedOrders.filter(o => o.waiter === selectedWaiter?.name)}
+            />
         </div>
     );
 }
@@ -676,7 +695,7 @@ Generado el: ${new Date().toLocaleString()}
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in no-print">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] no-print">
             <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
                 <div className="flex justify-between items-center mb-6 border-b pb-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
@@ -726,6 +745,74 @@ Generado el: ${new Date().toLocaleString()}
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    );
+}
+
+function WaiterDetailModal({ isOpen, onClose, waiterName, orders }: { isOpen: boolean; onClose: () => void; waiterName: string; orders: DetailedOrder[] }) {
+    if (!isOpen) return null;
+
+    const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] no-print">
+            <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+                <div className="flex justify-between items-center mb-6 border-b pb-4 shrink-0">
+                    <div>
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Users size={24} className="text-blue-600" />
+                            Detalle: {waiterName}
+                        </h2>
+                        <p className="text-sm text-gray-500">
+                            Total Ventas: <span className="font-bold text-gray-900">Bs {totalSales.toLocaleString('es-BO', { minimumFractionDigits: 2 })}</span>
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 rounded-full p-1 hover:bg-gray-100">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className="overflow-y-auto p-1">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 text-xs text-gray-400 uppercase font-bold sticky top-0">
+                            <tr>
+                                <th className="px-4 py-3 rounded-l-lg">ID Pedido</th>
+                                <th className="px-4 py-3">Hora</th>
+                                <th className="px-4 py-3">Mesa</th>
+                                <th className="px-4 py-3 text-right rounded-r-lg">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {orders.map((order) => (
+                                <tr key={order.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-medium text-gray-800">{order.id}</td>
+                                    <td className="px-4 py-3 text-gray-600">{order.date.toLocaleTimeString()}</td>
+                                    <td className="px-4 py-3 text-gray-600">Mesa {order.tableNumber || '?'}</td>
+                                    <td className="px-4 py-3 text-right font-bold text-gray-900">
+                                        Bs {order.total.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+                                    </td>
+                                </tr>
+                            ))}
+                            {orders.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                                        No hay pedidos registrados para este mesero en el periodo seleccionado.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="mt-6 pt-4 border-t flex justify-end shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-lg transition-colors"
+                    >
+                        Cerrar
+                    </button>
+                </div>
             </div>
         </div>
     );
