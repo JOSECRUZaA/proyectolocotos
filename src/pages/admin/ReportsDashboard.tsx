@@ -664,7 +664,7 @@ function EmailModal({ isOpen, onClose, metrics }: { isOpen: boolean; onClose: ()
 
         // Construct email body
         const body = `
-REPORTE FINANCIERO - WENDY RESTAURANTE
+REPORTE FINANCIERO - LOCOTOS RESTAURANTE
 ----------------------------------------
 Ventas Totales: Bs ${metrics.totalRevenue.toLocaleString('es-BO')}
 Pedidos Cerrados: ${metrics.totalOrders}
@@ -718,7 +718,7 @@ Generado el: ${new Date().toLocaleString()}
                             type="email"
                             required
                             className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="admin@wendys.com"
+                            placeholder="admin@locotos.com"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                         />

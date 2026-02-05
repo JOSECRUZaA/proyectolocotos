@@ -139,7 +139,7 @@ export default function UserManagement() {
             const userInput = userData.email.trim();
             const cleanEmail = userInput.includes('@')
                 ? userInput.toLowerCase()
-                : `${userInput.replace(/[^a-zA-Z0-9._-]/g, '').toUpperCase()}@wendys.system`;
+                : `${userInput.replace(/[^a-zA-Z0-9._-]/g, '').toUpperCase()}@locotos.system`;
 
             const cleanPassword = (userData.password || '').trim();
 
@@ -428,7 +428,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }: {
                         <input
                             type="text"
                             className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-gray-100 disabled:text-gray-500 uppercase font-mono"
-                            value={formData.email.replace('@wendys.system', '')}
+                            value={formData.email.replace('@locotos.system', '')}
                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                             required
                             disabled={!!userToEdit}

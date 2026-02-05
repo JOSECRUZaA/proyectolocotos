@@ -80,7 +80,7 @@ export default function ShiftGate({ children }: { children: React.ReactNode }) {
 
                     <div className="text-center">
                         <p className="text-xs text-gray-300 font-medium tracking-widest uppercase">
-                            Control de Asistencia Wendy's
+                            Control de Asistencia Locotos
                         </p>
                     </div>
                 </div>

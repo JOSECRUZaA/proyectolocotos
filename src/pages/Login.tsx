@@ -142,7 +142,7 @@ export default function Login() {
                     <div className="w-20 h-20 bg-gradient-to-tr from-red-600 to-orange-500 rounded-2xl rotate-3 flex items-center justify-center mb-6 text-white shadow-lg shadow-red-500/30 hover:rotate-6 transition-transform duration-300">
                         <ChefHat size={40} className="-rotate-3" />
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight text-center">Wendy's Restaurante</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight text-center">Locotos Restaurante</h1>
                     <p className="text-gray-500 mt-2 font-medium text-center">Bienvenido, inicia sesión</p>
                 </div>
 
@@ -199,7 +199,7 @@ export default function Login() {
             </div>
 
             <div className="absolute bottom-4 text-white/40 text-xs font-medium">
-                © {new Date().getFullYear()} Wendy's Restaurante System
+                © {new Date().getFullYear()} Locotos Restaurante System
             </div>
         </div>
     );

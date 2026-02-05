@@ -258,7 +258,7 @@ export default function MainLayout() {
                     <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
                         W
                     </div>
-                    <span className="font-bold text-gray-800">Wendy's App</span>
+                    <span className="font-bold text-gray-800">Locotos App</span>
                 </div>
                 <div className="flex items-center gap-3">
                     <button

@@ -214,7 +214,7 @@ export default function DailySales() {
                 </head>
                 <body>
                     <div class="header">
-                        <div class="title">WENDY RESTAURANTE</div>
+                        <div class="title">LOCOTOS RESTAURANTE</div>
                         <div class="subtitle">Detalle de Consumo</div>
                     </div>
                     
