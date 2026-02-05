@@ -17,8 +17,11 @@ import {
     Clock,
     ChevronDown,
     ChevronRight,
-    Menu
+    Menu,
+    X
 } from 'lucide-react';
+
+
 
 import { supabase } from '../lib/supabase';
 
@@ -262,7 +265,7 @@ export default function MainLayout() {
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg active:bg-gray-200 active:scale-95 transition-all"
                     >
-                        {isMobileMenuOpen ? <LogOut size={24} className="rotate-180" /> : <Menu size={24} />}
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>
             </header>
@@ -302,7 +305,7 @@ export default function MainLayout() {
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="md:hidden p-2 text-gray-400 hover:text-gray-600 active:bg-gray-100 rounded-full"
                     >
-                        <LogOut size={20} className="rotate-180" />
+                        <X size={20} />
                     </button>
                 </div>
 
