@@ -38,12 +38,21 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
 
     async function checkActiveSession() {
         try {
-            const { data, error } = await supabase
+            // Define query promise
+            const queryPromise = supabase
                 .from('work_sessions')
                 .select('*')
                 .eq('user_id', user?.id)
                 .eq('status', 'activo')
                 .maybeSingle();
+
+            // Define timeout promise (5s)
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout checking shift')), 5000)
+            );
+
+            // Race them
+            const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
             if (error) throw error;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

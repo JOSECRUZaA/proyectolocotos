@@ -122,10 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.log('No initial session found (manual check).');
                     setLoading(false);
                 } else {
-                    // Session found, let the onAuthStateChange handle the profile fetch
-                    // But just in case, update local state
+                    // Session found, ensure loading stops eventually
                     setSession(session);
                     setUser(session.user);
+                    // Explicitly fetch profile here too in case onAuthStateChange is slow/missed
+                    fetchProfile(session.user.id).finally(() => {
+                        if (mounted) setLoading(false);
+                    });
                 }
             }
         });
