@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../types/database.types';
-import { Users, Utensils, FileText, AlertCircle } from 'lucide-react';
+import { Users, Utensils, FileText, AlertCircle, User } from 'lucide-react';
 
 type Table = Database['public']['Tables']['mesas']['Row'];
+
+interface TableWithWaiter extends Table {
+    waiter_name?: string;
+}
 
 export default function TableMap() {
     const { profile } = useAuth();
     const navigate = useNavigate();
-    const [tables, setTables] = useState<Table[]>([]);
+    const [tables, setTables] = useState<TableWithWaiter[]>([]);
     const [errorModal, setErrorModal] = useState({ show: false, title: '', message: '' });
     const [loading, setLoading] = useState(true);
 
@@ -76,13 +80,51 @@ export default function TableMap() {
 
     async function fetchTables() {
         try {
-            const { data, error } = await supabase
+            const { data: tablesData, error } = await supabase
                 .from('mesas')
                 .select('*')
                 .order('numero_mesa');
 
             if (error) throw error;
-            setTables(data || []);
+
+            let enrichedTables: TableWithWaiter[] = tablesData || [];
+
+            // Fetch waiter info manually to avoid ambiguous FK joins
+            const activeOrderIds = enrichedTables
+                .filter(t => t.orden_actual_id)
+                .map(t => t.orden_actual_id);
+
+            if (activeOrderIds.length > 0) {
+                // 1. Get Orders to find Garzon IDs
+                const { data: ordersData } = await supabase
+                    .from('orders')
+                    .select('id, garzon_id')
+                    .in('id', activeOrderIds);
+
+                const garzonIds = ordersData
+                    ?.map(o => o.garzon_id)
+                    .filter(Boolean) as string[] || [];
+
+                if (garzonIds.length > 0) {
+                    // 2. Get Profiles
+                    const { data: profilesData } = await supabase
+                        .from('profiles')
+                        .select('id, nombre_completo')
+                        .in('id', garzonIds);
+
+                    // 3. Map it back
+                    const profileMap = new Map(profilesData?.map(p => [p.id, p.nombre_completo]));
+                    const orderGarzonMap = new Map(ordersData?.map(o => [o.id, o.garzon_id]));
+
+                    enrichedTables = enrichedTables.map(t => {
+                        const garzonId = t.orden_actual_id ? orderGarzonMap.get(t.orden_actual_id) : null;
+                        const waiterName = garzonId ? profileMap.get(garzonId) : undefined;
+                        return { ...t, waiter_name: waiterName };
+                    });
+                }
+            }
+
+            setTables(enrichedTables);
         } catch (error) {
             console.error('Error fetching tables:', error);
         } finally {
@@ -180,6 +222,16 @@ export default function TableMap() {
                         {/* Footer Info */}
                         <div className="w-full text-center border-t border-gray-100 pt-3 mt-2">
                             {getStatusBadge(table.estado)}
+
+                            {table.waiter_name && (
+                                <div className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-100 py-1 px-2 rounded-full mx-auto w-fit">
+                                    <User size={12} className="text-gray-500" />
+                                    <span className="truncate max-w-[120px]">
+                                        {table.waiter_name.split(' ')[0]}
+                                    </span>
+                                </div>
+                            )}
+
                             <p className="text-xs text-gray-400 font-semibold mt-2">
                                 Capacidad: {table.capacidad}p
                             </p>

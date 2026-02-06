@@ -110,8 +110,13 @@ export default function Login() {
                 }
 
                 // Success - Navigation handled by useEffect watching 'user' state
-                // We do NOT navigate here manually to avoid race conditions
+                // FAILSAFE: If AuthContext is slow to update, force a reload/navigation after 1.5s
                 console.log('Login successful, waiting for user state update...');
+                setTimeout(() => {
+                    if (window.location.pathname === '/login') {
+                        window.location.href = '/';
+                    }
+                }, 1500);
             }
         } catch (err: any) {
             console.error('Login error:', err);

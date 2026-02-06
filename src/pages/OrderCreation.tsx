@@ -26,6 +26,7 @@ export default function OrderCreation() {
     const [loading, setLoading] = useState(false);
     const [tableStatus, setTableStatus] = useState<TableStatus | null>(null);
     const [requestingBill, setRequestingBill] = useState(false);
+    const [assignedWaiterId, setAssignedWaiterId] = useState<string | null>(null);
 
     const [editingNote, setEditingNote] = useState<string | null>(null);
     const [noteText, setNoteText] = useState('');
@@ -115,13 +116,25 @@ export default function OrderCreation() {
     }, [tableId]);
 
     async function fetchTableStatus() {
-
         const { data } = await supabase
             .from('mesas')
-            .select('estado')
+            .select('estado, orden_actual_id')
             .eq('numero_mesa', parseInt(tableId || '0'))
             .single();
-        if (data) setTableStatus(data.estado);
+
+        if (data) {
+            setTableStatus(data.estado);
+            if (data.orden_actual_id) {
+                const { data: orderData } = await supabase
+                    .from('orders')
+                    .select('garzon_id')
+                    .eq('id', data.orden_actual_id)
+                    .single();
+                setAssignedWaiterId(orderData?.garzon_id || null);
+            } else {
+                setAssignedWaiterId(null);
+            }
+        }
     }
 
     async function fetchProducts() {
@@ -236,6 +249,12 @@ export default function OrderCreation() {
     };
 
     const requestBill = async () => {
+        // Guard: Prevent unauthorized bill requests
+        if (profile?.rol === 'garzon' && assignedWaiterId && profile.id !== assignedWaiterId) {
+            alert('⛔ Solo el mesero asignado puede pedir la cuenta.');
+            return;
+        }
+
         setRequestingBill(true);
         try {
             const { error } = await supabase
@@ -532,11 +551,18 @@ export default function OrderCreation() {
                                     <div className="mt-8 w-full border-t pt-8">
                                         <button
                                             onClick={requestBill}
-                                            disabled={requestingBill}
-                                            className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-yellow-300"
+                                            disabled={requestingBill || (profile?.rol === 'garzon' && !!assignedWaiterId && profile.id !== assignedWaiterId)}
+                                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border ${profile?.rol === 'garzon' && assignedWaiterId && profile.id !== assignedWaiterId
+                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                : 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300'
+                                                }`}
                                         >
                                             <FileText size={20} />
-                                            {requestingBill ? 'Solicitando...' : 'Pedir Cuenta'}
+                                            {requestingBill ? 'Solicitando...'
+                                                : (profile?.rol === 'garzon' && assignedWaiterId && profile.id !== assignedWaiterId)
+                                                    ? 'Solo Mesero Asignado'
+                                                    : 'Pedir Cuenta'
+                                            }
                                         </button>
                                         <p className="text-xs text-center text-gray-400 mt-2">
                                             Envía una alerta al cajero para cobrar esta mesa.
