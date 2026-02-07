@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Database, TableStatus } from '../types/database.types';
-import { Search, ShoppingCart, Trash2, Save, ArrowLeft, FileText, CheckCircle, Lock, ChefHat, Beer, ImageOff, UtensilsCrossed, Star } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Save, ArrowLeft, FileText, CheckCircle, Lock, ChefHat, Beer, ImageOff, UtensilsCrossed, Star, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 type Product = Database['public']['Tables']['products']['Row'];
@@ -273,6 +273,52 @@ export default function OrderCreation() {
         }
     };
 
+    // History State
+    const [showHistory, setShowHistory] = useState(false);
+    const [tableHistory, setTableHistory] = useState<any[]>([]);
+
+    async function fetchTableHistory() {
+        if (!tableStatus || tableStatus === 'libre') return;
+
+        try {
+            // Get current order ID from table
+            const { data: tableData } = await supabase
+                .from('mesas')
+                .select('orden_actual_id')
+                .eq('numero_mesa', parseInt(tableId!))
+                .single();
+
+            if (tableData?.orden_actual_id) {
+                const { data: items } = await supabase
+                    .from('order_items')
+                    .select(`
+                        id,
+                        cantidad,
+                        estado,
+                        nota_especial,
+                        products (nombre, precio)
+                    `)
+                    .eq('order_id', tableData.orden_actual_id)
+                    .order('created_at', { ascending: true });
+
+                setTableHistory(items || []);
+                setShowHistory(true);
+            }
+        } catch (error) {
+            console.error('Error fetching history:', error);
+        }
+    }
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'pendiente': return <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold">En Espera</span>;
+            case 'en_preparacion': return <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold animate-pulse">Cocinando</span>;
+            case 'listo': return <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Listo</span>;
+            case 'entregado': return <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Entregado</span>;
+            default: return null;
+        }
+    };
+
     // BLOCKING UI FOR CASHIER (Role Restriction)
     if (profile?.rol === 'cajero') {
         return (
@@ -301,6 +347,74 @@ export default function OrderCreation() {
 
     return (
         <div className="flex flex-col lg:flex-row h-[calc(100vh-theme(spacing.20))] gap-6 relative">
+            {/* HISTORY MODAL */}
+            {showHistory && (
+                <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
+                        <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+                            <h3 className="font-bold text-lg flex items-center gap-2">
+                                <Clock size={20} className="text-gray-500" />
+                                Historial de la Mesa {tableId}
+                            </h3>
+                            <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                                <ArrowLeft size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-0 overflow-y-auto">
+                            {tableHistory.length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">
+                                    <p>No hay pedidos anteriores en esta sesión.</p>
+                                </div>
+                            ) : (
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-bold sticky top-0">
+                                        <tr>
+                                            <th className="p-3">Cant.</th>
+                                            <th className="p-3">Producto</th>
+                                            <th className="p-3 text-right">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {tableHistory.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-gray-50">
+                                                <td className="p-3 font-bold text-gray-900 w-12 text-center">{item.cantidad}</td>
+                                                <td className="p-3">
+                                                    <div className="font-medium text-gray-800">{item.products.nombre}</div>
+                                                    {item.nota_especial && (
+                                                        <div className="text-xs text-yellow-600 italic">"{item.nota_especial}"</div>
+                                                    )}
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    {getStatusBadge(item.estado)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 border-t font-bold text-gray-900">
+                                        <tr>
+                                            <td colSpan={2} className="p-3 text-right">Total Acumulado:</td>
+                                            <td className="p-3 text-right">
+                                                Bs {tableHistory.reduce((acc, item) => acc + (item.products.precio * item.cantidad), 0)}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t bg-gray-50 text-center">
+                            <button
+                                onClick={() => setShowHistory(false)}
+                                className="text-sm font-bold text-gray-500 hover:text-gray-800 underline"
+                            >
+                                Cerrar Historial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* NOTES MODAL OVERLAY */}
             {editingNote && (
                 <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
@@ -370,11 +484,23 @@ export default function OrderCreation() {
                         </button>
                         <div>
                             <h1 className="text-2xl font-bold">Mesa {tableId}</h1>
-                            <span className={`text-xs px-2 py-0.5 rounded-full uppercase font-bold ${tableStatus === 'libre' ? 'bg-green-100 text-green-700' :
-                                tableStatus === 'pidio_cuenta' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                                }`}>
-                                {tableStatus?.replace('_', ' ') || 'Cargando...'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full uppercase font-bold ${tableStatus === 'libre' ? 'bg-green-100 text-green-700' :
+                                    tableStatus === 'pidio_cuenta' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                    }`}>
+                                    {tableStatus?.replace('_', ' ') || 'Cargando...'}
+                                </span>
+
+                                {tableStatus !== 'libre' && (
+                                    <button
+                                        onClick={fetchTableHistory}
+                                        className="flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors"
+                                    >
+                                        <Clock size={12} />
+                                        Ver Historial
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 

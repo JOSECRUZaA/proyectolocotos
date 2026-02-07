@@ -22,6 +22,7 @@ import ShiftGate from './components/ShiftGate';
 import ActiveSessions from './pages/admin/ActiveSessions';
 import StaffMonitor from './pages/admin/StaffMonitor';
 import MyShift from './pages/staff/MyShift';
+import WaiterOrders from './pages/staff/WaiterOrders';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -118,6 +119,7 @@ export default function App() {
                   <Route path="caja" element={<CashSession />} />
                   <Route path="caja/cobrar/:tableId" element={<OrderPayment />} />
                   <Route path="mi-asistencia" element={<MyShift />} />
+                  <Route path="mis-pedidos" element={<WaiterOrders />} />
                 </Route>
                 <Route path="ventas-diarias" element={<DailySales />} />
                 <Route path="admin/reportes" element={<ReportsDashboard />} />

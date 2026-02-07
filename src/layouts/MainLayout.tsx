@@ -316,6 +316,7 @@ export default function MainLayout() {
                         <>
                             <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Operaciones</div>
                             <NavLink to="/mesas" icon={<UtensilsCrossed size={18} />} label="Mesas & Pedidos" active={location.pathname === '/mesas'} />
+                            <NavLink to="/mis-pedidos" icon={<ClipboardList size={18} />} label="Mis Pedidos" active={location.pathname === '/mis-pedidos'} />
                             <NavLink to="/mesas/pedidos" icon={<ClipboardList size={18} />} label="Monitor de Salón" active={location.pathname === '/mesas/pedidos'} />
 
                             <div className="my-2 border-t border-gray-100"></div>

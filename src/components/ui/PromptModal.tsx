@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { X, Eye, EyeOff } from 'lucide-react';
 
 interface PromptModalProps {
     isOpen: boolean;
@@ -23,6 +24,8 @@ export default function PromptModal({
     inputType = 'text',
     placeholder = ''
 }: PromptModalProps) {
+    const [showPassword, setShowPassword] = useState(false);
+
     if (!isOpen) return null;
 
     return (
@@ -37,14 +40,25 @@ export default function PromptModal({
 
                 <p className="text-gray-600 mb-4 font-medium">{message}</p>
 
-                <input
-                    type={inputType}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all mb-8 text-lg"
-                    placeholder={placeholder}
-                    autoFocus
-                />
+                <div className="relative mb-8">
+                    <input
+                        type={inputType === 'password' && showPassword ? 'text' : inputType}
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-lg pr-12"
+                        placeholder={placeholder}
+                        autoFocus
+                    />
+                    {inputType === 'password' && (
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    )}
+                </div>
 
                 <div className="flex justify-end gap-3">
                     <button

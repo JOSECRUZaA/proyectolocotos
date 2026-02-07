@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database.types';
-import { Trash2, Search, UserPlus, X, Pencil, CheckCircle, KeyRound } from 'lucide-react';
+import { Trash2, Search, UserPlus, X, Pencil, CheckCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
 import PromptModal from '../../components/ui/PromptModal';
 import { Toast, useToast } from '../../components/ui/Toast';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
@@ -340,6 +340,7 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }: {
         rol: 'garzon'
     });
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         if (userToEdit) {
@@ -439,15 +440,24 @@ function UserModal({ isOpen, onClose, onSubmit, userToEdit }: {
                     {!userToEdit && (
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña</label>
-                            <input
-                                type="password"
-                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 outline-none"
-                                value={formData.password}
-                                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                required={!userToEdit}
-                                minLength={6}
-                                placeholder="******"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    className="w-full border border-gray-300 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-red-500 outline-none"
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    required={!userToEdit}
+                                    minLength={6}
+                                    placeholder="******"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                         </div>
                     )}
 
