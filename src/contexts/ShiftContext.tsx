@@ -27,6 +27,17 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Global Failsafe
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (loading) {
+                console.warn("ShiftContext loading stuck, forcing unlock...");
+                setLoading(false);
+            }
+        }, 6000);
+        return () => clearTimeout(timer);
+    }, [loading]);
+
     useEffect(() => {
         if (user) {
             checkActiveSession();
@@ -37,14 +48,16 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
     }, [user]);
 
     async function checkActiveSession() {
+        setLoading(true); // Ensure verify state is visible during check
         try {
-            // Define query promise
+            // Define query promise explicitly
             const queryPromise = supabase
                 .from('work_sessions')
                 .select('*')
                 .eq('user_id', user?.id)
                 .eq('status', 'activo')
-                .maybeSingle();
+                .maybeSingle()
+                .then(res => res); // FORCE PROMISE
 
             // Define timeout promise (5s)
             const timeoutPromise = new Promise((_, reject) =>
@@ -59,6 +72,9 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
             setCurrentSession(data as any);
         } catch (error) {
             console.error('Error checking shift:', error);
+            // On error/timeout, allow access (assume no active shift or handle otherwise?)
+            // If strictly enforcing, maybe we keep currentSession=null so they see Start Screen?
+            // Yes, that's safer.
         } finally {
             setLoading(false);
         }
