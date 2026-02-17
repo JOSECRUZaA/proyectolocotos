@@ -35,6 +35,8 @@ export default function Login() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        // Clear any stale session artifacts to prevent AuthContext race conditions
+        localStorage.removeItem('locotos_session_id');
 
         try {
             // AUTO-APPEND DOMAIN for simple usernames
@@ -78,7 +80,6 @@ export default function Login() {
             });
 
             const result = await Promise.race([loginPromise, timeoutPromise]);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: authData, error: authError } = result as any;
 
             if (authError) {
@@ -111,6 +112,24 @@ export default function Login() {
                 }
 
                 // Success - Navigation handled by useEffect watching 'user' state
+
+                // SINGLE SESSION ENFORCEMENT
+                // 1. Generate Session ID
+                const sessionId = crypto.randomUUID();
+
+                // 2. Save to Local Storage
+                localStorage.setItem('locotos_session_id', sessionId);
+
+                // 3. Update Profile
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ current_session_id: sessionId } as any) // Cast to any until types are updated
+                    .eq('id', authData.user.id);
+
+                if (updateError) {
+                    console.error('Error updating session ID:', updateError);
+                    // We continue anyway, worst case session enforcement won't work for this login
+                }
                 // FAILSAFE: If AuthContext is slow to update, force a reload/navigation after 1.5s
                 console.log('Login successful, waiting for user state update...');
                 setTimeout(() => {

@@ -24,8 +24,14 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 export function ShiftProvider({ children }: { children: React.ReactNode }) {
     const { user, profile } = useAuth();
     const { showToast } = useToast();
-    const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
-    const [loading, setLoading] = useState(true);
+    // OPTIMIZED: Initialize from LocalStorage to avoid blocking UI
+    const [currentSession, setCurrentSession] = useState<WorkSession | null>(() => {
+        const cached = localStorage.getItem('locotos_shift_session');
+        return cached ? JSON.parse(cached) : null;
+    });
+
+    // We still need a loading state, but it shouldn't block if we have cache
+    const [loading, setLoading] = useState(!localStorage.getItem('locotos_shift_session'));
 
     // Global Failsafe
     useEffect(() => {
@@ -43,12 +49,15 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
             checkActiveSession();
         } else {
             setCurrentSession(null);
+            localStorage.removeItem('locotos_shift_session');
             setLoading(false);
         }
     }, [user]);
 
     async function checkActiveSession() {
-        setLoading(true); // Ensure verify state is visible during check
+        // Don't set global loading to true if we already have data (Background Revalidation)
+        if (!currentSession) setLoading(true);
+
         try {
             // Define query promise explicitly
             const queryPromise = supabase
@@ -68,13 +77,21 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
             const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
             if (error) throw error;
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setCurrentSession(data as any);
+            const sessionData = data as any;
+
+            if (sessionData) {
+                setCurrentSession(sessionData);
+                localStorage.setItem('locotos_shift_session', JSON.stringify(sessionData));
+            } else {
+                setCurrentSession(null);
+                localStorage.removeItem('locotos_shift_session');
+            }
+
         } catch (error) {
             console.error('Error checking shift:', error);
-            // On error/timeout, allow access (assume no active shift or handle otherwise?)
-            // If strictly enforcing, maybe we keep currentSession=null so they see Start Screen?
-            // Yes, that's safer.
+            // Keep existing state on error / timeout (Optimistic UI)
         } finally {
             setLoading(false);
         }
@@ -97,7 +114,10 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
             if (error) throw error;
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setCurrentSession(data as any);
+            const newSession = data as any;
+            setCurrentSession(newSession);
+            localStorage.setItem('locotos_shift_session', JSON.stringify(newSession));
+
             showToast(`¡Buen trabajo ${profile.nombre_completo}! Turno iniciado.`, 'success');
         } catch (error: any) {
             console.error('Error starting shift:', error);
@@ -122,6 +142,7 @@ export function ShiftProvider({ children }: { children: React.ReactNode }) {
             if (error) throw error;
 
             setCurrentSession(null);
+            localStorage.removeItem('locotos_shift_session');
             showToast('Turno finalizado. ¡Buen descanso!', 'success');
         } catch (error: any) {
             console.error('Error ending shift:', error);

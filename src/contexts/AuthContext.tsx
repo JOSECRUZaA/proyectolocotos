@@ -60,6 +60,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return null;
                 });
             } else {
+                // SINGLE SESSION CHECK
+                // Check if the current session matches the one in the database
+                const serverSessionId = (data as any).current_session_id;
+                const localSessionId = localStorage.getItem('locotos_session_id');
+
+                if (serverSessionId && localSessionId && serverSessionId !== localSessionId) {
+                    console.warn('Session mismatch detected. Logging out...');
+                    await signOut();
+                    return; // Stop execution
+                }
+
                 setProfile(data);
             }
         } catch (err: any) {
@@ -156,6 +167,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 },
                 (payload) => {
                     console.log('Profile updated realtime:', payload);
+
+                    // SINGLE SESSION REALTIME CHECK
+                    const newProfile = payload.new as any;
+                    const serverSessionId = newProfile.current_session_id;
+                    const localSessionId = localStorage.getItem('locotos_session_id');
+
+                    if (serverSessionId && localSessionId && serverSessionId !== localSessionId) {
+                        console.warn('Remote session takeover detected. Logging out...');
+                        signOut(); // This will clear session and user
+                        return;
+                    }
+
                     setProfile(payload.new as Profile);
                 }
             )
@@ -172,6 +195,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setSession(null);
         setError(null);
+        localStorage.removeItem('locotos_session_id');
+        localStorage.removeItem('locotos_shift_session'); // Also clear shift cache
     };
 
     return (
